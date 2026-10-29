@@ -1,0 +1,45 @@
+{
+    "hits": 0,
+    "misses": 5,
+    "bypasses": 15,
+    "total_requests": 20,
+    "saved_time_us": 0,
+    "recent_history": [
+        {
+            "status": "MISS",
+            "driver": "generated",
+            "key": "page:6d831dfd16870194b513822ae9510ad0",
+            "time_us": 16774.79999999999927240423858165740966796875,
+            "timestamp": 1793131799
+        },
+        {
+            "status": "MISS",
+            "driver": "generated",
+            "key": "page:3de0477774b7241c7a0112136612e43e",
+            "time_us": 28660,
+            "timestamp": 1793131483
+        },
+        {
+            "status": "MISS",
+            "driver": "generated",
+            "key": "page:2c953ad74a71e9f10a3e05b3f631be07",
+            "time_us": 29478.5,
+            "timestamp": 1793131419
+        },
+        {
+            "status": "MISS",
+            "driver": "generated",
+            "key": "page:6d831dfd16870194b513822ae9510ad0",
+            "time_us": 16776.4000000000014551915228366851806640625,
+            "timestamp": 1793130857
+        },
+        {
+            "status": "MISS",
+            "driver": "generated",
+            "key": "page:6d831dfd16870194b513822ae9510ad0",
+            "time_us": 25063.79999999999927240423858165740966796875,
+            "timestamp": 1793129644
+        }
+    ],
+    "created_at": 1793129644
+}

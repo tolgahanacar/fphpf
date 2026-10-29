@@ -1,0 +1,26 @@
+{
+    "name": "fphp/cache",
+    "description": "Ultra-fast microsecond PHP acceleration and caching library with hybrid APCu and atomic SSD file drivers, full page cache, and minification.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "FPHP Team"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "suggest": {
+        "ext-apcu": "Required for in-memory 1-5 µs shared memory caching",
+        "ext-zlib": "Required for automated Gzip pre-compression"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fphp\\": "src/"
+        },
+        "files": [
+            "fphp-bootstrap.php"
+        ]
+    }
+}

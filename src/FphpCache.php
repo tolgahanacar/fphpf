@@ -1,0 +1,473 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Fphp;
+
+use Fphp\Driver\CacheDriverInterface;
+use Fphp\Driver\ApcuDriver;
+use Fphp\Driver\FileDriver;
+use Fphp\Driver\MemoryDriver;
+use Fphp\Driver\HybridDriver;
+use Fphp\FullPage\PageCache;
+use Fphp\Profiler\StatsTracker;
+use Fphp\Profiler\Metrics;
+use Fphp\Tags\TagManager;
+use Fphp\Tags\TaggedCache;
+
+/**
+ * FphpCache - High-Performance Microsecond PHP Acceleration Engine
+ * 
+ * Features:
+ * - Microsecond in-memory (APCu) and atomic SSD/NVMe caching
+ * - Full-Page Microcache with zero-framework execution bypass (0.1ms responses)
+ * - Object, Database Query, and Fragment caching (remember, tag)
+ * - Automatic HTML/CSS minifier and ETag / 304 Not Modified handler
+ * - Real-time telemetry, hit/miss metrics, and developer dashboard
+ */
+class FphpCache
+{
+    public const VERSION = '1.0.0';
+
+    protected static ?self $instance = null;
+    protected Config $config;
+    protected CacheDriverInterface $driver;
+    protected PageCache $pageCache;
+    protected StatsTracker $stats;
+    protected TagManager $tagManager;
+    protected ?\Fphp\Fragment\FragmentCache $fragmentCache = null;
+
+    public function __construct(?Config $config = null)
+    {
+        $this->config = $config ?? new Config();
+        $this->stats = new StatsTracker($this->config->get('cache_dir'));
+
+        $driverType = $this->config->get('driver', 'hybrid');
+        $this->driver = $this->createDriver($driverType);
+        $this->tagManager = new TagManager($this->driver);
+        $this->pageCache = new PageCache($this->config, $this->driver, $this->stats);
+    }
+
+    /**
+     * Create the appropriate cache driver based on configuration.
+     */
+    protected function createDriver(string $type): CacheDriverInterface
+    {
+        $cacheDir = $this->config->get('cache_dir');
+        $prefix = $this->config->get('prefix', 'fphp:');
+        $useCompression = (bool)$this->config->get('optimizer.gzip_compression', true);
+        $compLevel = (int)$this->config->get('optimizer.compression_level', 6);
+
+        $redisDriver = null;
+        if ((bool)$this->config->get('redis.enabled', false)) {
+            $redisDriver = new \Fphp\Driver\RedisDriver(
+                (string)$this->config->get('redis.host', '127.0.0.1'),
+                (int)$this->config->get('redis.port', 6379),
+                $this->config->get('redis.password'),
+                (int)$this->config->get('redis.database', 0),
+                (float)$this->config->get('redis.timeout', 1.5),
+                $prefix
+            );
+        }
+
+        return match ($type) {
+            'apcu' => new ApcuDriver($prefix),
+            'file' => new FileDriver($cacheDir, $prefix, $useCompression, $compLevel),
+            'memory' => new MemoryDriver(),
+            'redis' => $redisDriver ?? new \Fphp\Driver\RedisDriver(
+                (string)$this->config->get('redis.host', '127.0.0.1'),
+                (int)$this->config->get('redis.port', 6379),
+                $this->config->get('redis.password'),
+                (int)$this->config->get('redis.database', 0),
+                (float)$this->config->get('redis.timeout', 1.5),
+                $prefix
+            ),
+            default => new HybridDriver($cacheDir, $prefix, $useCompression, $redisDriver)
+        };
+    }
+
+    /**
+     * Get or initialize the singleton instance.
+     */
+    public static function instance(?Config $config = null): self
+    {
+        if (self::$instance === null) {
+            self::$instance = new self($config);
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Initialize with custom configuration array.
+     */
+    public static function init(array $config = []): self
+    {
+        self::$instance = new self(new Config($config));
+        return self::$instance;
+    }
+
+    /**
+     * Drop-in accelerator bootloader:
+     * Call at the very top of index.php or in php.ini auto_prepend_file.
+     * If cached, serves page in microseconds and terminates immediately.
+     */
+    public static function boot(array $config = []): void
+    {
+        if (self::$instance === null) {
+            self::init($config);
+        }
+
+        self::$instance->pageCache->serve();
+    }
+
+    /**
+     * Get an item from cache.
+     */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        return self::instance()->driver->get($key, $default);
+    }
+
+    /**
+     * Store an item in cache.
+     */
+    public static function set(string $key, mixed $value, int $ttl = 3600): bool
+    {
+        return self::instance()->driver->set($key, $value, $ttl);
+    }
+
+    /**
+     * Check if key exists.
+     */
+    public static function has(string $key): bool
+    {
+        return self::instance()->driver->has($key);
+    }
+
+    /**
+     * Get an item or compute and store it if missing.
+     * Features enterprise Cache Stampede / Dogpile protection via AtomicLock.
+     */
+    public static function remember(string $key, int $ttl, callable $callback): mixed
+    {
+        $val = self::get($key);
+        if ($val !== null) {
+            return $val;
+        }
+
+        $lockKey = 'remember:' . $key;
+        $hasLock = \Fphp\Lock\AtomicLock::acquire($lockKey, 8);
+
+        if (!$hasLock) {
+            // Another worker is computing this! Spin-wait up to 50ms in 2ms intervals
+            for ($i = 0; $i < 25; $i++) {
+                usleep(2000);
+                $val = self::get($key);
+                if ($val !== null) {
+                    return $val;
+                }
+            }
+        }
+
+        try {
+            $computed = $callback();
+            self::set($key, $computed, $ttl);
+            return $computed;
+        } finally {
+            if ($hasLock) {
+                \Fphp\Lock\AtomicLock::release($lockKey);
+            }
+        }
+    }
+
+    /**
+     * Optimal Probabilistic Early Expiration (XFetch Algorithm).
+     * 
+     * Based on "Optimal Probabilistic Cache Stampede Prevention" (VLDB):
+     * Eliminates cache stampede on hot keys without spin-locking or blocking latency.
+     * Computes early based on execution time (delta), random variable (U), and beta multiplier.
+     *
+     * @param string $key
+     * @param int $ttl Lifetime in seconds
+     * @param callable $callback Expensive calculation closure
+     * @param float $beta Aggressiveness parameter (default: 1.0)
+     * @return mixed
+     */
+    public static function rememberXFetch(string $key, int $ttl, callable $callback, float $beta = 1.0): mixed
+    {
+        $cached = self::get($key);
+        $now = microtime(true);
+
+        if (is_array($cached) && isset($cached['__xfetch'])) {
+            $delta = (float)($cached['delta'] ?? 0.05);
+            $expiry = (float)($cached['expires_at'] ?? 0);
+            $remaining = $expiry - $now;
+
+            // XFetch formula: early threshold x = - beta * delta * ln(U)
+            // U is uniformly distributed in (0, 1]
+            $u = max(0.000001, (float)mt_rand(1, 1000000) / 1000000.0);
+            $x = - $beta * $delta * log($u);
+
+            // If remaining time is greater than probabilistic threshold, return cached value
+            if ($remaining > $x) {
+                return $cached['val'];
+            }
+
+            // Inside early expiration window: try acquiring lock to recompute
+            $lockKey = 'xfetch:' . $key;
+            $hasLock = \Fphp\Lock\AtomicLock::acquire($lockKey, 5);
+
+            if (!$hasLock) {
+                // Another worker is already recomputing! Return stale/current value immediately without blocking!
+                return $cached['val'];
+            }
+
+            try {
+                $t0 = microtime(true);
+                $newVal = $callback();
+                $execDelta = max(0.001, microtime(true) - $t0);
+
+                $entry = [
+                    'val' => $newVal,
+                    'delta' => $execDelta,
+                    'expires_at' => microtime(true) + $ttl,
+                    '__xfetch' => true
+                ];
+
+                self::set($key, $entry, $ttl + 300);
+                return $newVal;
+            } finally {
+                \Fphp\Lock\AtomicLock::release($lockKey);
+            }
+        }
+
+        // Cold miss: Acquire lock and compute
+        $lockKey = 'xfetch:' . $key;
+        $hasLock = \Fphp\Lock\AtomicLock::acquire($lockKey, 8);
+
+        if (!$hasLock) {
+            // Spin-wait up to 50ms in 2ms intervals
+            for ($i = 0; $i < 25; $i++) {
+                usleep(2000);
+                $cached = self::get($key);
+                if (is_array($cached) && isset($cached['__xfetch'])) {
+                    return $cached['val'];
+                }
+            }
+        }
+
+        try {
+            $t0 = microtime(true);
+            $computed = $callback();
+            $execDelta = max(0.001, microtime(true) - $t0);
+
+            $entry = [
+                'val' => $computed,
+                'delta' => $execDelta,
+                'expires_at' => microtime(true) + $ttl,
+                '__xfetch' => true
+            ];
+
+            self::set($key, $entry, $ttl + 300);
+            return $computed;
+        } finally {
+            if ($hasLock) {
+                \Fphp\Lock\AtomicLock::release($lockKey);
+            }
+        }
+    }
+
+    /**
+     * Cache Warmer instance.
+     */
+    public static function getWarmer(): \Fphp\Warmer\CacheWarmer
+    {
+        return new \Fphp\Warmer\CacheWarmer(self::instance()->config->get('cache_dir'));
+    }
+
+    /**
+     * OPcache & JIT Diagnostics.
+     */
+    public static function getOpcacheDiagnostics(): array
+    {
+        return \Fphp\Optimizer\OpcacheManager::getDiagnostics();
+    }
+
+    /**
+     * Generate standalone OPcache preload.php file.
+     */
+    public static function generatePreloadFile(): bool
+    {
+        $output = dirname(__DIR__) . '/preload.php';
+        return \Fphp\Optimizer\OpcacheManager::generatePreloadFile($output);
+    }
+
+    /**
+     * Delete an item.
+     */
+    public static function delete(string $key): bool
+    {
+        $inst = self::instance();
+        (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->delete($key);
+        return $inst->driver->delete($key);
+    }
+
+    /**
+     * Clear all cached data.
+     */
+    public static function clear(): bool
+    {
+        $inst = self::instance();
+        (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->clear();
+        return $inst->driver->clear();
+    }
+
+    /**
+     * Delete all items matching a given key prefix across active cache tiers.
+     *
+     * @param string $prefix Key prefix to match
+     * @return int Number of deleted items
+     */
+    public static function deletePrefix(string $prefix): int
+    {
+        $inst = self::instance();
+        if (method_exists($inst->driver, 'deletePrefix')) {
+            return $inst->driver->deletePrefix($prefix);
+        }
+        return 0;
+    }
+
+    /**
+     * Garbage Collector: Prune all expired disk cache files across drivers.
+     *
+     * @param int $maxAge Optional max age in seconds
+     * @return array Summary of pruned files and freed bytes
+     */
+    public static function prune(int $maxAge = 0): array
+    {
+        $inst = self::instance();
+        $streamStore = new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir'));
+        $streamPrune = $streamStore->prune($maxAge);
+
+        $driverPrune = ['deleted_files' => 0, 'freed_bytes' => 0];
+        if (method_exists($inst->driver, 'prune')) {
+            $driverPrune = $inst->driver->prune($maxAge);
+        }
+
+        return [
+            'total_deleted' => ($streamPrune['deleted_files'] ?? 0) + ($driverPrune['deleted_files'] ?? 0),
+            'total_freed_bytes' => ($streamPrune['freed_bytes'] ?? 0) + ($driverPrune['freed_bytes'] ?? 0),
+            'stream_cache' => $streamPrune,
+            'file_cache' => $driverPrune
+        ];
+    }
+
+    /**
+     * Fragment / Partial caching with closure.
+     */
+    public static function fragment(string $id, int $ttl, callable $callback): string
+    {
+        return self::getFragmentEngine()->remember($id, $ttl, $callback);
+    }
+
+    /**
+     * Start fragment template buffering.
+     */
+    public static function startFragment(string $id, int $ttl = 3600): bool
+    {
+        return self::getFragmentEngine()->start($id, $ttl);
+    }
+
+    /**
+     * End fragment template buffering.
+     */
+    public static function endFragment(): string
+    {
+        return self::getFragmentEngine()->end();
+    }
+
+    /**
+     * Get FragmentCache instance.
+     */
+    public static function getFragmentEngine(): \Fphp\Fragment\FragmentCache
+    {
+        $inst = self::instance();
+        if ($inst->fragmentCache === null) {
+            $inst->fragmentCache = new \Fphp\Fragment\FragmentCache($inst->driver);
+        }
+        return $inst->fragmentCache;
+    }
+
+    /**
+     * Tagged caching scope.
+     */
+    public static function tag(array|string $tags): TaggedCache
+    {
+        $inst = self::instance();
+        return new TaggedCache($inst->driver, $inst->tagManager, (array)$tags);
+    }
+
+    /**
+     * Get active driver.
+     */
+    public static function getDriver(): CacheDriverInterface
+    {
+        return self::instance()->driver;
+    }
+
+    /**
+     * Get configuration container.
+     */
+    public static function getConfig(): Config
+    {
+        return self::instance()->config;
+    }
+
+    /**
+     * Get telemetry stats.
+     */
+    public static function getStats(): array
+    {
+        return self::instance()->stats->getSummary();
+    }
+
+    /**
+     * Get stats tracker instance.
+     */
+    public static function getStatsTracker(): StatsTracker
+    {
+        return self::instance()->stats;
+    }
+
+    /**
+     * Get PageCache engine.
+     */
+    public static function getPageCache(): PageCache
+    {
+        return self::instance()->pageCache;
+    }
+
+    /**
+     * Get TagManager.
+     */
+    public static function getTagManager(): TagManager
+    {
+        return self::instance()->tagManager;
+    }
+
+    /**
+     * Get PSR-16 (Simple Cache) compliant instance.
+     */
+    public static function psr16(): \Fphp\Adapter\Psr16Cache
+    {
+        return new \Fphp\Adapter\Psr16Cache(self::instance()->driver);
+    }
+
+    /**
+     * Get PSR-6 (CacheItemPool) compliant instance.
+     */
+    public static function psr6(): \Fphp\Adapter\Psr6CachePool
+    {
+        return new \Fphp\Adapter\Psr6CachePool(self::instance()->driver);
+    }
+}
