@@ -145,17 +145,59 @@ switch ($command) {
         }
         break;
 
+    case 'speculation':
+        $url = $args[1] ?? '/';
+        echo "⚡ W3C Spekülatif Ön-İşleme Kuralları ('{$url}'):\n\n";
+        $tag = FphpCache::renderSpeculationTag($url);
+        echo !empty($tag) ? $tag . "\n" : "   (Aktif kurallar bulunmuyor veya eşik altında)\n";
+        break;
+
+    case 'mutate':
+        $entity = $args[1] ?? '';
+        if (empty($entity)) {
+            echo " [HATA] Lütfen geçersiz kılınacak veri varlığını belirtin (örn: table:products veya user:42)\n";
+            break;
+        }
+        echo "🧬 Reaktif Veri Soyağacı Mutasyonu Tetikleniyor: '{$entity}'...\n";
+        $res = FphpCache::mutate($entity);
+        echo " [BAŞARILI] " . $res['evicted_count'] . " adet önbellek kaydı atomik olarak geçersiz kılındı.\n";
+        if (!empty($res['evicted_keys'])) {
+            foreach ($res['evicted_keys'] as $k) {
+                echo "   - [GEÇERSİZ] {$k}\n";
+            }
+        }
+        break;
+
+    case 'pid':
+        echo "🎛️ Sibernetik PID Homeostazis Telemetrisi:\n";
+        $telemetry = FphpCache::pidTelemetry();
+        if (empty($telemetry)) {
+            echo " [BİLGİ] PID denetleyicisi aktif değil.\n";
+            break;
+        }
+        echo "  • Hedef Bellek Oranı : %" . round($telemetry['setpoint'] * 100, 1) . "\n";
+        echo "  • Anlık Bellek Oranı : %" . round($telemetry['memory_ratio'] * 100, 1) . "\n";
+        echo "  • Bellek Kullanımı   : " . $telemetry['memory_used_mb'] . " MB / " . $telemetry['memory_limit_mb'] . " MB\n";
+        echo "  • Hata Marjı e(t)    : " . $telemetry['current_error'] . "\n";
+        echo "  • Kontrol Sinyali u  : " . $telemetry['control_signal_u'] . "\n";
+        echo "  • Dinamik SWR Pencer.: " . FphpCache::adaptSwr(60) . " saniye (Baz: 60s)\n";
+        echo "  • Dinamik Sıkıştırma : Seviye " . FphpCache::adaptCompression(6) . " (Baz: 6)\n";
+        break;
+
     case 'help':
     default:
         echo "Kullanılabilir Komutlar:\n";
         echo "  php fphp-cli.php stats           Önbellek, isabet oranları ve bellek durumunu gösterir\n";
+        echo "  php fphp-cli.php pid             Sibernetik PID geribildirim ve bellek regülasyon telemetrisi\n";
         echo "  php fphp-cli.php clear           Tüm önbellek katmanlarını temizler (purge)\n";
+        echo "  php fphp-cli.php mutate <entity> Reaktif DAG üzerinden veri varlığına bağlı tüm sayfaları buharlaştırır\n";
         echo "  php fphp-cli.php delete-prefix <prefix>  Belirli bir ön ekle başlayan tüm kayıtları siler\n";
         echo "  php fphp-cli.php prune           Süresi dolmuş dosyaları diskten temizler (GC)\n";
         echo "  php fphp-cli.php warmup          Kayıtlı sayfaları arka planda ısıtır\n";
         echo "  php fphp-cli.php warmup --sitemap=public/sitemap.xml  Sitemap URL'lerini paralel ısıtır\n";
         echo "  php fphp-cli.php sidecar --server=nginx  Web sunucusu doğrudan çekirdek bypass kuralı üretir\n";
         echo "  php fphp-cli.php predict <url>   Tahminsel gezinme olasılıklarını listeler\n";
+        echo "  php fphp-cli.php speculation <url> W3C Speculation Rules çıktısını görüntüler\n";
         echo "  php fphp-cli.php preload         OPcache preload.php dosyasını günceller\n";
         echo "  php fphp-cli.php bench           Canlı performans hız testini çalıştırır\n";
         break;

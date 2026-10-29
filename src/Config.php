@@ -79,6 +79,28 @@ class Config
                 'markov_threshold' => 0.20
             ],
 
+            // W3C Speculation Rules (0.00 ms Instant Navigation)
+            'speculation_rules' => [
+                'enabled' => true,
+                'prerender_threshold' => 0.40,
+                'prefetch_threshold' => 0.15,
+                'auto_inject' => true
+            ],
+
+            // Autonomous Reactive Data Lineage Graph (DAG)
+            'lineage' => [
+                'enabled' => true
+            ],
+
+            // Cybernetic PID Homeostasis Controller
+            'adaptive_pid' => [
+                'enabled' => true,
+                'target_memory_ratio' => 0.70,
+                'kp' => 1.2,
+                'ki' => 0.05,
+                'kd' => 0.25
+            ],
+
             // Profiling & Stats
             'profiler' => [
                 'enabled' => true,

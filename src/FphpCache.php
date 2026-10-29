@@ -536,4 +536,150 @@ class FphpCache
             default => \Fphp\Optimizer\ServerConfigGenerator::nginx($dir)
         };
     }
+
+    /**
+     * Get active SpeculationRulesBridge instance.
+     */
+    public static function getSpeculationBridge(): ?\Fphp\Warmer\SpeculationRulesBridge
+    {
+        return self::instance()->pageCache->getSpeculationBridge();
+    }
+
+    /**
+     * Generate W3C Speculation Rules array for the specified or current URL.
+     */
+    public static function speculationRules(?string $url = null): array
+    {
+        $bridge = self::getSpeculationBridge();
+        if ($bridge === null) {
+            return [];
+        }
+        $targetUrl = $url ?? ($_SERVER['REQUEST_URI'] ?? '/');
+        return $bridge->generateRules($targetUrl);
+    }
+
+    /**
+     * Render <script type="speculationrules"> tag for the specified or current URL.
+     */
+    public static function renderSpeculationTag(?string $url = null): string
+    {
+        $bridge = self::getSpeculationBridge();
+        if ($bridge === null) {
+            return '';
+        }
+        $targetUrl = $url ?? ($_SERVER['REQUEST_URI'] ?? '/');
+        return $bridge->renderTag($targetUrl);
+    }
+
+    /**
+     * Inject W3C Speculation Rules script tag into HTML markup.
+     */
+    public static function injectSpeculationRules(string $html, ?string $url = null): string
+    {
+        $bridge = self::getSpeculationBridge();
+        if ($bridge === null) {
+            return $html;
+        }
+        $targetUrl = $url ?? ($_SERVER['REQUEST_URI'] ?? '/');
+        return $bridge->inject($html, $targetUrl);
+    }
+
+    /**
+     * Get active Reactive LineageGraph instance.
+     */
+    public static function getLineageGraph(): ?\Fphp\Reactive\LineageGraph
+    {
+        return self::instance()->pageCache->getLineageGraph();
+    }
+
+    /**
+     * Explicitly record a data lineage dependency for a cache artifact.
+     *
+     * @param string|array $entities e.g. 'users:42', ['table:products', 'category:hardware']
+     * @param string|null $artifactKey Cache key or null for active context
+     * @param string $type
+     */
+    public static function recordLineage(string|array $entities, ?string $artifactKey = null, string $type = 'page'): void
+    {
+        $graph = self::getLineageGraph();
+        if ($graph === null) {
+            return;
+        }
+
+        if ($artifactKey !== null) {
+            $graph->record($entities, $artifactKey, $type);
+        } else {
+            // Register into active context stack
+            $entityList = is_array($entities) ? $entities : [$entities];
+            foreach ($entityList as $e) {
+                $graph->record($e, 'pending_context', $type);
+            }
+        }
+    }
+
+    /**
+     * Signal that one or more data entities have mutated.
+     * Atomically traces all dependent artifacts in the DAG and invalidates them in O(1).
+     *
+     * Supports exact keys ('users:42') and wildcards ('table:products:*').
+     *
+     * @param string|array $entities
+     * @return array Invalidation report ['evicted_count' => int, 'evicted_keys' => string[]]
+     */
+    public static function mutate(string|array $entities): array
+    {
+        $graph = self::getLineageGraph();
+        if ($graph === null) {
+            return ['evicted_count' => 0, 'evicted_keys' => [], 'matched_entities' => []];
+        }
+        return $graph->mutate($entities);
+    }
+
+    /**
+     * Execute a block of code within a reactive data lineage context.
+     * Any cache entry created inside will automatically register these entities.
+     *
+     * @param string|array $entities
+     * @param callable $callback
+     * @return mixed
+     */
+    public static function trackLineage(string|array $entities, callable $callback): mixed
+    {
+        return \Fphp\Reactive\LineageGraph::track($entities, $callback);
+    }
+
+    /**
+     * Get active Cybernetic PID Controller instance.
+     */
+    public static function getPidController(): ?\Fphp\Adaptive\PidController
+    {
+        return self::instance()->pageCache->getPidController();
+    }
+
+    /**
+     * Dynamically adapt Stale-While-Revalidate window based on live system pressure.
+     */
+    public static function adaptSwr(int $baseSeconds = 60): int
+    {
+        $pid = self::getPidController();
+        return $pid !== null ? $pid->adaptStaleWhileRevalidate($baseSeconds) : $baseSeconds;
+    }
+
+    /**
+     * Dynamically adapt compression level based on live system memory pressure.
+     */
+    public static function adaptCompression(int $baseLevel = 6): int
+    {
+        $pid = self::getPidController();
+        return $pid !== null ? $pid->adaptCompressionLevel($baseLevel) : $baseLevel;
+    }
+
+    /**
+     * Retrieve real-time PID homeostasis diagnostic telemetry.
+     */
+    public static function pidTelemetry(): array
+    {
+        $pid = self::getPidController();
+        return $pid !== null ? $pid->getTelemetry() : [];
+    }
 }

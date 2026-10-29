@@ -54,6 +54,9 @@ class CacheTest
         $this->testDynamicHolePunching();
         $this->testMarkovWarmer();
         $this->testServerConfigGenerator();
+        $this->testSpeculationRulesBridge();
+        $this->testReactiveLineageGraph();
+        $this->testPidController();
 
         echo "\n--------------------------------------------\n";
         echo "Results: {$this->passed} PASSED, {$this->failed} FAILED\n";
@@ -784,7 +787,122 @@ XML;
         $this->assert('ServerConfigGenerator produces Caddy config snippet', str_contains($caddyConfig, '@fphp_eligible'));
 
         $facadeSidecar = \Fphp\FphpCache::sidecar('nginx');
-        $this->assert('FphpCache::sidecar returns valid configuration', !empty($facadeSidecar) && str_contains($facadeSidecar, 'fphp_cache_root'));
+        $this->assert('ServerConfigGenerator produces valid configuration', !empty($facadeSidecar) && str_contains($facadeSidecar, 'fphp_cache_root'));
+    }
+
+    private function testSpeculationRulesBridge(): void
+    {
+        echo "\nTesting W3C Speculation Rules Bridge...\n";
+        $testDir = dirname(__DIR__) . '/cache/test_speculation';
+        $markov = new \Fphp\Warmer\MarkovWarmer($testDir);
+
+        // Train Markov with probabilities: /item -> /checkout (4 times = 80%), /item -> /help (1 time = 20%)
+        $markov->recordTransition('/item', '/checkout');
+        $markov->recordTransition('/item', '/checkout');
+        $markov->recordTransition('/item', '/checkout');
+        $markov->recordTransition('/item', '/checkout');
+        $markov->recordTransition('/item', '/help');
+
+        $bridge = new \Fphp\Warmer\SpeculationRulesBridge($markov, 0.40, 0.15);
+        $rules = $bridge->generateRules('/item');
+
+        $this->assert('SpeculationRulesBridge generates rules array', is_array($rules));
+        $this->assert('SpeculationRulesBridge assigns high-probability to prerender', isset($rules['prerender']));
+        $this->assert('SpeculationRulesBridge prerenders /checkout', in_array('/checkout', $rules['prerender'][0]['urls'], true));
+        $this->assert('SpeculationRulesBridge assigns moderate-probability to prefetch', isset($rules['prefetch']));
+        $this->assert('SpeculationRulesBridge prefetches /help', in_array('/help', $rules['prefetch'][0]['urls'], true));
+
+        // Test Script Tag Generation
+        $tag = $bridge->renderTag('/item');
+        $this->assert('SpeculationRulesBridge renders valid script tag', str_contains($tag, '<script type="speculationrules">') && str_contains($tag, '/checkout'));
+
+        // Test HTML Auto-Injection
+        $html = '<!DOCTYPE html><html><head><title>Item</title></head><body><h1>Content</h1></body></html>';
+        $injected = $bridge->inject($html, '/item');
+        $this->assert('SpeculationRulesBridge injects script before closing head', str_contains($injected, '<script type="speculationrules">') && str_contains($injected, "</script>\n</head>"));
+
+        $markov->clear();
+        @rmdir($testDir);
+    }
+
+    private function testReactiveLineageGraph(): void
+    {
+        echo "\nTesting Autonomous Reactive Data Lineage Graph (DAG)...\n";
+        $testDir = dirname(__DIR__) . '/cache/test_lineage';
+        $graph = new \Fphp\Reactive\LineageGraph($testDir);
+
+        $invalidated = [];
+        $graph->registerInvalidator(function (string $artifactKey, string $type) use (&$invalidated) {
+            $invalidated[$artifactKey] = $type;
+        });
+
+        // 1. Record dependencies
+        $graph->record('account:101', 'page_acc_101', 'page');
+        $graph->record(['table:orders', 'account:101'], 'page_orders_101', 'page');
+        $graph->record('table:inventory:item_5', 'page_item_5', 'bytecode');
+        $graph->record('table:inventory:item_6', 'page_item_6', 'bytecode');
+
+        // Verify DAG queries
+        $dependents = $graph->getDependents('account:101');
+        $this->assert('LineageGraph retrieves dependents for entity', isset($dependents['page_acc_101']) && isset($dependents['page_orders_101']));
+
+        $entities = $graph->getEntitiesForArtifact('page_orders_101');
+        $this->assert('LineageGraph retrieves entity ancestors for artifact', in_array('table:orders', $entities, true) && in_array('account:101', $entities, true));
+
+        // 2. Scoped tracking context
+        $scopedContext = \Fphp\Reactive\LineageGraph::track('inventory:global_sync', function () {
+            return \Fphp\Reactive\LineageGraph::getActiveContext();
+        });
+        $this->assert('LineageGraph supports scoped tracking context', in_array('inventory:global_sync', $scopedContext, true));
+
+        // 3. Exact entity mutation
+        $report1 = $graph->mutate('account:101');
+        $this->assert('LineageGraph exact mutation invalidates exact dependents', $report1['evicted_count'] === 2);
+        $this->assert('LineageGraph invalidator callback triggered for exact match', isset($invalidated['page_acc_101']) && isset($invalidated['page_orders_101']));
+        $this->assert('LineageGraph detaches resolved edges', empty($graph->getDependents('account:101')));
+
+        // 4. Wildcard entity mutation
+        $report2 = $graph->mutate('table:inventory:*');
+        $this->assert('LineageGraph wildcard mutation invalidates pattern matches', $report2['evicted_count'] === 2);
+        $this->assert('LineageGraph invalidator callback triggered for wildcard', isset($invalidated['page_item_5']) && isset($invalidated['page_item_6']));
+
+        $graph->clear();
+        @unlink($testDir . '/lineage_graph.json');
+        @rmdir($testDir);
+    }
+
+    private function testPidController(): void
+    {
+        echo "\nTesting Cybernetic PID Homeostasis Controller...\n";
+        $pid = new \Fphp\Adaptive\PidController(1.2, 0.05, 0.25, 0.70);
+
+        // 1. Calm state (Memory ratio = 0.40, setpoint = 0.70 -> error = -0.30)
+        $outputCalm = $pid->sample(0.40);
+        $this->assert('PID Controller calculates negative control signal during low load', $outputCalm < 0);
+        $swrCalm = $pid->adaptStaleWhileRevalidate(60);
+        $this->assert('PID Controller preserves baseline SWR under calm load', $swrCalm === 60);
+
+        // 2. High surge state (Memory ratio = 0.90, setpoint = 0.70 -> error = +0.20)
+        $outputSurge = $pid->sample(0.90);
+        $this->assert('PID Controller calculates positive control signal during surge', $outputSurge > 0);
+        $swrSurge = $pid->adaptStaleWhileRevalidate(60);
+        $this->assert('PID Controller dynamically expands SWR grace window under surge', $swrSurge > 60);
+
+        // 3. Compression adaptation
+        $pid->sample(0.95);
+        $compSurge = $pid->adaptCompressionLevel(6);
+        $this->assert('PID Controller scales up compression under memory pressure', $compSurge >= 6);
+
+        // 4. Preemptive eviction check
+        $this->assert('PID Controller signals preemptive eviction under critical runaway', $pid->shouldPreemptivelyEvict(0.92));
+
+        // 5. Telemetry diagnostics
+        $telemetry = $pid->getTelemetry();
+        $this->assert('PID Controller produces full telemetry metrics', isset($telemetry['control_signal_u'], $telemetry['memory_ratio'], $telemetry['memory_limit_mb']));
+
+        // 6. Facade checks
+        $this->assert('FphpCache::adaptSwr returns integer', is_int(\Fphp\FphpCache::adaptSwr(60)));
+        $this->assert('FphpCache::pidTelemetry returns telemetry array', is_array(\Fphp\FphpCache::pidTelemetry()));
     }
 }
 

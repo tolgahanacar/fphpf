@@ -26,6 +26,9 @@ class PageCache
     protected StreamStore $streamStore;
     protected BytecodeStore $bytecodeStore;
     protected ?\Fphp\Warmer\MarkovWarmer $markovWarmer = null;
+    protected ?\Fphp\Warmer\SpeculationRulesBridge $speculationBridge = null;
+    protected ?\Fphp\Reactive\LineageGraph $lineageGraph = null;
+    protected ?\Fphp\Adaptive\PidController $pidController = null;
     protected ?string $currentKey = null;
     protected bool $isCapturing = false;
 
@@ -40,6 +43,30 @@ class PageCache
 
         if ($this->config->get('warmer.predictive_markov', true)) {
             $this->markovWarmer = new \Fphp\Warmer\MarkovWarmer($config->get('cache_dir'));
+        }
+
+        if ($this->config->get('speculation_rules.enabled', true)) {
+            $this->speculationBridge = new \Fphp\Warmer\SpeculationRulesBridge(
+                $this->markovWarmer,
+                (float)$this->config->get('speculation_rules.prerender_threshold', 0.40),
+                (float)$this->config->get('speculation_rules.prefetch_threshold', 0.15)
+            );
+        }
+
+        if ($this->config->get('lineage.enabled', true)) {
+            $this->lineageGraph = new \Fphp\Reactive\LineageGraph($config->get('cache_dir'));
+            $this->lineageGraph->registerInvalidator(function (string $artifactKey, string $artifactType) {
+                $this->purgeKey($artifactKey);
+            });
+        }
+
+        if ($this->config->get('adaptive_pid.enabled', true)) {
+            $this->pidController = new \Fphp\Adaptive\PidController(
+                (float)$this->config->get('adaptive_pid.kp', 1.2),
+                (float)$this->config->get('adaptive_pid.ki', 0.05),
+                (float)$this->config->get('adaptive_pid.kd', 0.25),
+                (float)$this->config->get('adaptive_pid.target_memory_ratio', 0.70)
+            );
         }
     }
 
@@ -276,6 +303,11 @@ class PageCache
                 \Fphp\Optimizer\AssetOptimizer::dispatchLinkHeaders($preloadLinks);
                 $processed = \Fphp\Optimizer\AssetOptimizer::injectPreloadTags($processed, $preloadLinks);
             }
+
+            // 2b. W3C Speculation Rules (0.00 ms Instant Navigation)
+            if ($this->speculationBridge !== null && $this->config->get('speculation_rules.auto_inject', true)) {
+                $processed = $this->speculationBridge->inject($processed, $_SERVER['REQUEST_URI'] ?? '/');
+            }
         }
 
         // 3. Auto-Register visited URL with Cache Warmer
@@ -291,11 +323,12 @@ class PageCache
         // 4. Generate ETag
         $etag = HeaderManager::generateEtag($processed);
 
-        // 5. Optional pre-compression
+        // 5. Optional pre-compression (dynamically adapted by PID controller if enabled)
         $gzipData = '';
         $isGzip = false;
         if ($this->config->get('optimizer.gzip_compression', true)) {
-            $compLevel = (int)$this->config->get('optimizer.compression_level', 6);
+            $baseCompLevel = (int)$this->config->get('optimizer.compression_level', 6);
+            $compLevel = $this->pidController !== null ? $this->pidController->adaptCompressionLevel($baseCompLevel) : $baseCompLevel;
             $compressed = Compression::gzip($processed, $compLevel);
             if ($compressed !== false) {
                 $gzipData = $compressed;
@@ -306,6 +339,10 @@ class PageCache
         $ttl = (int)$this->config->get('page_cache.ttl', 1800);
         $now = time();
 
+        // Dynamically adapted SWR grace window
+        $baseGrace = (int)$this->config->get('page_cache.stale_while_revalidate', 300);
+        $graceWindow = $this->pidController !== null ? $this->pidController->adaptStaleWhileRevalidate($baseGrace) : $baseGrace;
+
         $cacheEntry = [
             'content_raw' => $processed,
             'content_gzip' => $gzipData,
@@ -315,7 +352,7 @@ class PageCache
             'driver' => $this->driver->getName(),
             'created_at' => $now,
             'expires_at' => $now + $ttl,
-            'grace_until' => $now + $ttl + 300 // 5 minutes SWR grace window
+            'grace_until' => $now + $ttl + $graceWindow
         ];
 
         // 1. Store in OPcache Bytecode Transmutation Engine (0.8 µs execution)
@@ -327,7 +364,15 @@ class PageCache
         $this->streamStore->store($this->currentKey, $processed, $contentType, $etag, $ttl);
 
         // 3. Store in standard driver
-        $this->driver->set($this->currentKey, $cacheEntry, $ttl + 300);
+        $this->driver->set($this->currentKey, $cacheEntry, $ttl + $graceWindow);
+
+        // 4. Associate active Reactive Lineage dependencies (if context active)
+        if ($this->lineageGraph !== null) {
+            $activeContext = \Fphp\Reactive\LineageGraph::getActiveContext();
+            if (!empty($activeContext)) {
+                $this->lineageGraph->record($activeContext, $this->currentKey, 'page');
+            }
+        }
 
         // Release SWR lock
         \Fphp\Lock\AtomicLock::release('swr:' . $this->currentKey);
@@ -440,6 +485,31 @@ class PageCache
     public function getMarkovWarmer(): ?\Fphp\Warmer\MarkovWarmer
     {
         return $this->markovWarmer;
+    }
+
+    public function getSpeculationBridge(): ?\Fphp\Warmer\SpeculationRulesBridge
+    {
+        return $this->speculationBridge;
+    }
+
+    public function getLineageGraph(): ?\Fphp\Reactive\LineageGraph
+    {
+        return $this->lineageGraph;
+    }
+
+    public function getPidController(): ?\Fphp\Adaptive\PidController
+    {
+        return $this->pidController;
+    }
+
+    /**
+     * Purge a specific cache key from all storage tiers (Bytecode, Stream, Driver).
+     */
+    public function purgeKey(string $key): void
+    {
+        $this->bytecodeStore->delete($key);
+        $this->streamStore->delete($key);
+        $this->driver->delete($key);
     }
 
     /**
