@@ -18,7 +18,7 @@ class AtomicLock
 
     public static function getLockDir(): string
     {
-        if (empty(self::$lockDir)) {
+        if (empty(self::$lockDir) || !is_dir(self::$lockDir)) {
             self::$lockDir = dirname(__DIR__, 2) . '/cache/locks';
             if (!is_dir(self::$lockDir)) {
                 @mkdir(self::$lockDir, 0775, true);
