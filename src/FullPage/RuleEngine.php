@@ -28,9 +28,17 @@ class RuleEngine
             return [false, 'Non-GET method: ' . $method];
         }
 
-        // 2. Check bypass query parameter (for debugging, e.g. ?fphp_nocache=1)
-        if (isset($_GET['fphp_nocache']) || isset($_GET['nocache'])) {
+        // 2. Check bypass query parameters (debugging, searches, previews, customizers)
+        if (isset($_GET['fphp_nocache']) || isset($_GET['nocache']) || isset($_GET['fphp_bypass'])) {
             return [false, 'Bypass query parameter detected'];
+        }
+        if (isset($_GET['preview']) || isset($_GET['s']) || isset($_GET['customize_changeset_uuid'])) {
+            return [false, 'Dynamic search or preview parameter detected'];
+        }
+
+        // 2b. Bypass AJAX requests (prevent caching partial JSON/HTML intended for live widgets)
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            return [false, 'Bypass AJAX XMLHttpRequest'];
         }
 
         $uri = $_SERVER['REQUEST_URI'] ?? '/';

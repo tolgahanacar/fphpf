@@ -251,9 +251,10 @@ class PageCache
      * Process captured buffer, minify, compress, and store in cache.
      *
      * @param string $buffer
+     * @param array $customHeaders Optional explicit headers array (used for testing and custom wrappers)
      * @return string
      */
-    public function processAndStore(string $buffer): string
+    public function processAndStore(string $buffer, array $customHeaders = []): string
     {
         if (empty(trim($buffer)) || empty($this->currentKey)) {
             return $buffer;
@@ -271,11 +272,35 @@ class PageCache
             return $buffer;
         }
 
+        $headers = !empty($customHeaders) ? $customHeaders : headers_list();
         $contentType = 'text/html; charset=UTF-8';
-        foreach (headers_list() as $header) {
+        foreach ($headers as $header) {
+            $lower = strtolower($header);
+
+            // RFC 7234: Respect application-level Cache-Control directives
+            if (str_starts_with($lower, 'cache-control:')) {
+                if (str_contains($lower, 'no-store') || str_contains($lower, 'private') || str_contains($lower, 'no-cache')) {
+                    $this->stats->recordBypass('Cache-Control: no-store/private header');
+                    return $buffer;
+                }
+            }
+
+            // Respect Pragma: no-cache
+            if (str_starts_with($lower, 'pragma:') && str_contains($lower, 'no-cache')) {
+                $this->stats->recordBypass('Pragma: no-cache header');
+                return $buffer;
+            }
+
+            // Sensitive Set-Cookie leak protection: Never publicly cache a response that issues session/auth cookies
+            if (str_starts_with($lower, 'set-cookie:')) {
+                if (preg_match('/(session|logged_in|auth|cart|token|phpsessid|user)/i', $lower)) {
+                    $this->stats->recordBypass('Sensitive Set-Cookie header issued');
+                    return $buffer;
+                }
+            }
+
             if (stripos($header, 'Content-Type:') === 0) {
                 $contentType = trim(substr($header, 13));
-                break;
             }
         }
 
