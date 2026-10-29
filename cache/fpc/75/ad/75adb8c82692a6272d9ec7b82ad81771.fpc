@@ -1,2 +1,0 @@
-FPHP1:{"created_at":1793131483,"expires_at":1793133283,"grace_until":1793133583,"ttl":1800,"etag":"\"0c2b735a68661b5e0d30ab562fbb49ce\"","content_type":"text\/html; charset=UTF-8","size":255}
-<!DOCTYPE html><html><head><title>Framework Page</title></head><body><h1>Full Framework Executed (Cache MISS)</h1><p>Execution time: 28.27 ms</p><p>Refresh this page to see it served instantly in <strong>~120 µs</strong> via FPHP Cache!</p></body></html>

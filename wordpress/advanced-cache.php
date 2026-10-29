@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 /**
- * FPHP Cache - Official WordPress Advanced Cache Drop-in
+ * FPHP Cache - Advanced Cache Drop-in
  * 
  * Instructions:
  * 1. Copy this file to: wp-content/advanced-cache.php
- * 2. Add to wp-config.php: define('WP_CACHE', true);
+ * 2. Add to configuration: define('WP_CACHE', true);
  * 
- * Result: WordPress responds in microseconds (0.1ms - 0.2ms) without
- * loading wpdb, plugins, or themes for public visitors!
+ * Result: Responds in microseconds (0.1ms - 0.2ms) without
+ * loading heavy database layers, plugins, or themes for public visitors!
  */
 
 if (!defined('ABSPATH')) {
@@ -32,17 +32,17 @@ if (!empty($_GET)) {
 // 3. Bypass Dynamic & Sensitive Cookies (Zero Data Loss Guarantee)
 if (!empty($_COOKIE)) {
     foreach ($_COOKIE as $cookieKey => $cookieVal) {
-        // WordPress Logged In User or Commenter
+        // Authenticated user session or commenter cookies
         if (str_starts_with($cookieKey, 'wordpress_logged_in_') || str_starts_with($cookieKey, 'comment_author_')) {
             return;
         }
-        // WooCommerce Shopping Cart & Checkout Sessions
+        // E-commerce shopping cart & checkout session cookies
         if (str_starts_with($cookieKey, 'wp_woocommerce_session_') || 
             $cookieKey === 'woocommerce_items_in_cart' || 
             $cookieKey === 'woocommerce_cart_hash') {
             return;
         }
-        // Easy Digital Downloads
+        // Digital downloads and cart cookies
         if ($cookieKey === 'edd_items_in_cart') {
             return;
         }

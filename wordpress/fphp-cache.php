@@ -2,7 +2,7 @@
 /**
  * Plugin Name: FPHP Cache Accelerator
  * Plugin URI: https://github.com/fphp/cache
- * Description: Ultra-fast microsecond caching engine. Bypasses 100% of WordPress core & MySQL queries for visitors while guaranteeing zero data loss for admins and WooCommerce carts.
+ * Description: Ultra-fast microsecond caching engine. Bypasses core runtime and database queries for visitors while guaranteeing zero data loss for authenticated users and dynamic shopping carts.
  * Version: 1.0.0
  * Author: FPHP Team
  * License: MIT
@@ -24,7 +24,7 @@ if (file_exists($fphpBootstrap)) {
     require_once $fphpBootstrap;
 }
 
-class FphpWordPressPlugin
+class FphpCmsPlugin
 {
     public static function init(): void
     {
@@ -160,7 +160,10 @@ class FphpWordPressPlugin
     }
 }
 
-FphpWordPressPlugin::init();
+FphpCmsPlugin::init();
+if (!class_exists('FphpWordPressPlugin', false)) {
+    class_alias('FphpCmsPlugin', 'FphpWordPressPlugin');
+}
 
 // 4. WP-CLI Command Registration
 if (defined('WP_CLI') && WP_CLI && class_exists('\\WP_CLI')) {

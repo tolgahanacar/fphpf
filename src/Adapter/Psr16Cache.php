@@ -15,8 +15,8 @@ class Psr16InvalidArgumentException extends \InvalidArgumentException implements
 /**
  * Enterprise PSR-16 (Simple Cache) Compliant Adapter for FPHP Cache
  * 
- * Allows FPHP Cache to be used as a drop-in cache engine in Symfony, Laravel,
- * Laminas, and any framework expecting a PSR-16 CacheInterface.
+ * Allows FPHP Cache to be used as a drop-in cache engine in modern PHP
+ * web frameworks, microservices, and applications expecting a PSR-16 CacheInterface.
  */
 class Psr16Cache implements CacheInterface
 {

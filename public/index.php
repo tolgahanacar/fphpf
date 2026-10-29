@@ -19,7 +19,7 @@ require_once dirname(__DIR__) . '/fphp-bootstrap.php';
 // If we reach here, it's a cache MISS or BYPASS:
 $startTime = hrtime(true);
 
-// Simulate typical database latency (e.g., WordPress loading plugins & MySQL queries)
+// Simulate typical backend latency (e.g., dynamic middleware, service bootstrap & database queries)
 usleep(15000); // 15ms database latency simulation
 
 $generationMs = round((hrtime(true) - $startTime) / 1000000, 2);
@@ -418,14 +418,14 @@ $generationMs = round((hrtime(true) - $startTime) / 1000000, 2);
         <div class="comparison-grid">
             <div class="compare-card bad">
                 <div class="compare-title" style="color: var(--accent-rose);">
-                    <span>🐢</span> Normal PHP / WordPress Ne Yapar?
+                    <span>🐢</span> Klasik Dinamik Mimari Ne Yapar?
                 </div>
                 <ul class="step-list">
-                    <li>❌ Her istekte 150 PHP dosyasını diskten yükler.</li>
-                    <li>❌ MySQL veritabanına 80-120 adet sorgu gönderir.</li>
+                    <li>❌ Her istekte yüzlerce PHP dosyasını diskten yükler.</li>
+                    <li>❌ Veritabanına onlarca ağır sorgu gönderir.</li>
                     <li>❌ CPU işlemcisi her ziyaretçide HTML üretir.</li>
                     <li>❌ Süre: <strong>200 ms - 600 ms (Çok yavaş)</strong></li>
-                    <li>❌ 100 kişi aynı anda girerse sunucu çöker.</li>
+                    <li>❌ Yüksek eşzamanlı trafikte sunucu kilitlenir.</li>
                 </ul>
             </div>
 
@@ -434,7 +434,7 @@ $generationMs = round((hrtime(true) - $startTime) / 1000000, 2);
                     <span>⚡</span> FPHP Cache Eklendiğinde Ne Olur?
                 </div>
                 <ul class="step-list">
-                    <li>✅ 150 PHP dosyası <strong>HİÇ YÜKLENMEZ</strong>.</li>
+                    <li>✅ Ağır kütüphane sınıfları <strong>HİÇ YÜKLENMEZ</strong>.</li>
                     <li>✅ Veritabanına <strong>TEK BİR SORGU GİTMEZ (%0 Yük)</strong>.</li>
                     <li>✅ Sayfa doğrudan RAM'den kullanıcıya verilir.</li>
                     <li>✅ Süre: <strong>0.1 ms - 0.2 ms (Işık hızında)</strong></li>
@@ -444,9 +444,9 @@ $generationMs = round((hrtime(true) - $startTime) / 1000000, 2);
         </div>
 
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">🚀 Projenize veya WordPress'e Nasıl Ekleyeceksiniz?</h3>
+            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">🚀 Projenize Nasıl Ekleyeceksiniz?</h3>
             <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
-                Kendi web sitenizin veya WordPress projenizin <code>index.php</code> dosyasının en başına şu iki satırı yapıştırmanız yeterlidir:
+                Kendi web uygulamanızın veya projenizin <code>index.php</code> dosyasının en başına şu iki satırı yapıştırmanız yeterlidir:
             </p>
             <div class="code-box">
                 require_once 'c:/MAMP/htdocs/fphpf/fphp-bootstrap.php';<br>

@@ -1,1 +1,9 @@
-/README.md
+# Cache storage and locks
+/cache/*
+!/cache/.gitkeep
+
+# Temporary and log files
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

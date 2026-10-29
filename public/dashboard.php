@@ -538,7 +538,7 @@ $misses = $stats['misses'] ?? 0;
                 </div>
 
                 <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">
-                    PHP uygulamalarınızda (WordPress, Laravel, Özel Projeler) x2 - x20 hız artışı elde etmek için aşağıdaki yöntemlerden birini seçin:
+                    PHP web uygulamalarınızda ve REST API projelerinizde x2 - x20 hız artışı elde etmek için aşağıdaki yöntemlerden birini seçin:
                 </p>
 
                 <div style="margin-bottom: 1.25rem;">
@@ -645,7 +645,7 @@ $misses = $stats['misses'] ?? 0;
                         <span class="status-pill status-active">Aktif</span>
                     </div>
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.6;">
-                        HTML çıktısındaki kritik CSS, WOFF2 web fontları ve harici alan adları (Google Fonts) otomatik tespit edilir ve tarayıcıya <strong>HTTP Link / Preload</strong> olarak gönderilir.
+                        HTML çıktısındaki kritik CSS, WOFF2 web fontları ve harici alan adları otomatik tespit edilir ve tarayıcıya <strong>HTTP Link / Preload</strong> olarak gönderilir.
                     </p>
                     <div class="layer-item" style="margin-bottom: 0;">
                         <div>
@@ -665,7 +665,7 @@ $misses = $stats['misses'] ?? 0;
                         <span class="status-pill status-active">Hazır • Zero-Dependency</span>
                     </div>
                     <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.6;">
-                        Symfony, Laravel, Laminas gibi modern framework'lerde yerel cache motoru olarak doğrudan kullanılabilir:
+                        Modern PHP web framework'lerinde ve modüler mimarilerde yerel cache motoru olarak doğrudan kullanılabilir:
                     </p>
                     <div class="code-box" style="font-size: 0.8rem; padding: 0.75rem 1rem;">
                         $psr16 = \Fphp\FphpCache::psr16();<br>

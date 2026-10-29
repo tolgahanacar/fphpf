@@ -37,7 +37,7 @@ class Config
                 ],
                 'excluded_urls' => [
                     '#/admin#i',
-                    '#/wp-admin#i',
+                    '#/control-panel#i',
                     '#/cart#i',
                     '#/checkout#i',
                     '#/login#i',
@@ -46,7 +46,8 @@ class Config
                     '#/api/auth#i'
                 ],
                 'bypass_cookies' => [
-                    'wordpress_logged_in_',
+                    'session_logged_in_',
+                    'user_logged_in_',
                     'PHPSESSID_LOGGED_IN',
                     'fphp_bypass',
                     'admin_session'

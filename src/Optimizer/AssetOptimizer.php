@@ -7,7 +7,7 @@ namespace Fphp\Optimizer;
 /**
  * Enterprise Asset Optimizer & HTTP 103 Early Hints Generator
  * 
- * Extracts critical stylesheets, Google fonts, and hero assets to inject
+ * Extracts critical stylesheets, web fonts, and hero assets to inject
  * HTTP Link preload headers and <link rel="preload"> tags into HTML.
  */
 class AssetOptimizer
@@ -32,7 +32,7 @@ class AssetOptimizer
             }
         }
 
-        // 2. Detect Google Fonts and CDN domains for preconnect
+        // 2. Detect external web font CDN domains for preconnect
         if (str_contains($html, 'fonts.googleapis.com') || str_contains($html, 'fonts.gstatic.com')) {
             $links[] = '<https://fonts.googleapis.com>; rel=preconnect';
             $links[] = '<https://fonts.gstatic.com>; rel=preconnect; crossorigin';

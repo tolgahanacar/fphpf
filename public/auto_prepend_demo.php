@@ -8,14 +8,14 @@ declare(strict_types=1);
  * If you configure php.ini or .htaccess:
  *   php_value auto_prepend_file "c:/MAMP/htdocs/fphpf/fphp-bootstrap.php"
  * 
- * Then FphpCache::boot() runs BEFORE any index.php or WordPress/Laravel code is loaded.
+ * Then FphpCache::boot() runs BEFORE any index.php or application bootstrap code is loaded.
  * If cache HIT, the entire framework and database are 100% bypassed, responding in microseconds!
  */
 
 require_once dirname(__DIR__) . '/fphp-bootstrap.php';
 \Fphp\FphpCache::boot();
 
-// Simulated heavy framework bootstrap (e.g. Laravel service providers, Eloquent, blade templates)
+// Simulated heavy application bootstrap (e.g. service providers, ORM entities, template engine)
 $timeStart = hrtime(true);
 usleep(18000); // 18ms bootstrap simulation
 
