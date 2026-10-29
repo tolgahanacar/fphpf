@@ -433,6 +433,16 @@ All 109 unit and integration assertions validate drivers, OPcache bytecode trans
 
 ---
 
+## ⚠️ Legal Disclaimer & Limitation of Liability
+
+1. **"AS IS" & Zero Warranty**: This software is provided free of charge under the MIT License on an "AS IS" and "AS AVAILABLE" basis, without warranty of any kind, express or implied.
+2. **Assumption of Risk**: Any individual, developer, or organization installing, testing, deploying, or running this library assumes 100% of the operational, technical, and legal risk.
+3. **No Liability for Damages**: In no event shall the authors, maintainers, or copyright holders be held liable for any claim, loss, downtime, server crash, database corruption, financial loss, security breach, or damages (direct, indirect, or consequential) arising out of the use, performance, or inability to use this software.
+4. **Third-Party Modifications & Forks**: The original authors have no control over and assume zero responsibility for any modifications, forks, altered packages, unauthorized distributions, or malicious tamperings created by third parties. Any unauthorized modification or improper deployment is strictly the sole liability of the entity deploying it.
+5. **No Commercial SLA or Support Guarantee**: This is an independent open-source library. No service level agreement (SLA), formal support contract, or indemnification is provided or implied.
+
+---
+
 ## 📄 License
 
 Open-source software licensed under the [MIT License](LICENSE).
