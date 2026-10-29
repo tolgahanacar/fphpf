@@ -13,3 +13,4 @@ This repository is an open-source project provided free of charge under the MIT 
 
 ## 4. Reporting Potential Security Findings
 If you identify a potential security issue in the original upstream codebase, please submit a responsible disclosure report via GitHub Security Advisories or privately contact the repository maintainers.
+
