@@ -50,6 +50,10 @@ class CacheTest
         $this->testIfModifiedSince();
         $this->testDeletePrefix();
         $this->testCompressionNegotiation();
+        $this->testBytecodeStore();
+        $this->testDynamicHolePunching();
+        $this->testMarkovWarmer();
+        $this->testServerConfigGenerator();
 
         echo "\n--------------------------------------------\n";
         echo "Results: {$this->passed} PASSED, {$this->failed} FAILED\n";
@@ -681,6 +685,106 @@ XML;
         $this->assert('Compression negotiates gzip when br not loaded or supported', $negotiated === 'gzip');
 
         unset($_SERVER['HTTP_ACCEPT_ENCODING']);
+    }
+
+    private function testBytecodeStore(): void
+    {
+        echo "\nTesting OPcache Bytecode Transmutation Engine...\n";
+        $testDir = dirname(__DIR__) . '/cache/test_opc';
+        $store = new \Fphp\FullPage\BytecodeStore($testDir, 'test_opc:');
+
+        $html = '<!DOCTYPE html><html><body><h1>Bytecode Object</h1></body></html>';
+        $etag = '"opc123"';
+        $stored = $store->store('page_home', $html, 'text/html; charset=UTF-8', $etag, 3600);
+
+        $this->assert('BytecodeStore stores compiled PHP script', $stored);
+
+        $filePath = $store->getFilePath('page_home');
+        $this->assert('BytecodeStore generated sharded .php file', file_exists($filePath));
+
+        // Directly include and verify bytecode structure
+        $compiled = include $filePath;
+        $this->assert('Compiled script returns valid metadata array', is_array($compiled) && isset($compiled['meta']));
+        $this->assert('Compiled script contains identical HTML content', ($compiled['content'] ?? '') === $html);
+
+        // Retrieve stale
+        $stale = $store->retrieveStale('page_home');
+        $this->assert('BytecodeStore retrieveStale returns payload', is_array($stale) && ($stale['content_raw'] ?? '') === $html);
+
+        // Invalidate and delete
+        $deleted = $store->delete('page_home');
+        $this->assert('BytecodeStore delete removes compiled script', $deleted && !file_exists($filePath));
+
+        $store->clear();
+        @rmdir($testDir);
+    }
+
+    private function testDynamicHolePunching(): void
+    {
+        echo "\nTesting Streaming Dynamic Hole Punching (Island Architecture)...\n";
+        \Fphp\Fragment\HolePuncher::clear();
+
+        // 1. Declare hole with fallback and runtime resolver
+        $markup = '<div>' . \Fphp\Fragment\HolePuncher::hole('user_badge', fn() => '<strong>Welcome, Admin</strong>', '<span>Sign In</span>') . '</div>';
+
+        $this->assert('HolePuncher creates HTML hole markers', \Fphp\Fragment\HolePuncher::hasHoles($markup));
+
+        // 2. Render holes dynamically
+        $rendered = \Fphp\Fragment\HolePuncher::renderHoles($markup);
+        $this->assert('HolePuncher evaluates dynamic resolver inside hole', str_contains($rendered, '<strong>Welcome, Admin</strong>'));
+        $this->assert('HolePuncher removes raw hole comment tags', !str_contains($rendered, '<!--fphp:hole:'));
+
+        // 3. Static slot setting
+        \Fphp\Fragment\HolePuncher::set('cart_count', '7');
+        $cartMarkup = 'Cart: ' . \Fphp\Fragment\HolePuncher::hole('cart_count', null, '0');
+        $renderedCart = \Fphp\Fragment\HolePuncher::renderHoles($cartMarkup);
+        $this->assert('HolePuncher substitutes static slot values', str_contains($renderedCart, 'Cart: 7'));
+
+        // 4. Fallback when no resolver
+        \Fphp\Fragment\HolePuncher::clear();
+        $fallbackMarkup = 'Status: ' . \Fphp\Fragment\HolePuncher::hole('unregistered_slot', null, 'Default Status');
+        $renderedFallback = \Fphp\Fragment\HolePuncher::renderHoles($fallbackMarkup);
+        $this->assert('HolePuncher preserves fallback when resolver absent', str_contains($renderedFallback, 'Default Status'));
+
+        \Fphp\Fragment\HolePuncher::clear();
+    }
+
+    private function testMarkovWarmer(): void
+    {
+        echo "\nTesting Predictive Markov Sequence Warmer...\n";
+        $testDir = dirname(__DIR__) . '/cache/test_markov';
+        $markov = new \Fphp\Warmer\MarkovWarmer($testDir);
+
+        // Simulate browsing history: /catalog -> /catalog/item-a (3 times), /catalog -> /catalog/item-b (1 time)
+        $markov->recordTransition('/catalog', '/catalog/item-a');
+        $markov->recordTransition('/catalog', '/catalog/item-a');
+        $markov->recordTransition('/catalog', '/catalog/item-a');
+        $markov->recordTransition('/catalog', '/catalog/item-b');
+
+        $predictions = $markov->predictNext('/catalog', 0.20);
+
+        $this->assert('MarkovWarmer predicts next target URLs', !empty($predictions));
+        $this->assert('MarkovWarmer ranks most frequent target first', array_key_first($predictions) === '/catalog/item-a');
+        $this->assert('MarkovWarmer calculates probability >= 70%', ($predictions['/catalog/item-a'] ?? 0) >= 0.70);
+
+        $markov->clear();
+        @rmdir($testDir);
+    }
+
+    private function testServerConfigGenerator(): void
+    {
+        echo "\nTesting Web Server Zero-PHP Sidecar Generator...\n";
+        $testDir = dirname(__DIR__) . '/cache';
+
+        $nginxConfig = \Fphp\Optimizer\ServerConfigGenerator::nginx($testDir);
+        $this->assert('ServerConfigGenerator produces Nginx config snippet', str_contains($nginxConfig, 'gzip_static on;'));
+        $this->assert('ServerConfigGenerator includes bypass variable check', str_contains($nginxConfig, '$fphp_bypass'));
+
+        $caddyConfig = \Fphp\Optimizer\ServerConfigGenerator::caddy($testDir);
+        $this->assert('ServerConfigGenerator produces Caddy config snippet', str_contains($caddyConfig, '@fphp_eligible'));
+
+        $facadeSidecar = \Fphp\FphpCache::sidecar('nginx');
+        $this->assert('FphpCache::sidecar returns valid configuration', !empty($facadeSidecar) && str_contains($facadeSidecar, 'fphp_cache_root'));
     }
 }
 

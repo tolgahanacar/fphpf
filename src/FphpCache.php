@@ -308,16 +308,18 @@ class FphpCache
     public static function delete(string $key): bool
     {
         $inst = self::instance();
+        (new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir')))->delete($key);
         (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->delete($key);
         return $inst->driver->delete($key);
     }
 
     /**
-     * Clear all cached data.
+     * Clear all cached data across all storage layers.
      */
     public static function clear(): bool
     {
         $inst = self::instance();
+        (new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir')))->clear();
         (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->clear();
         return $inst->driver->clear();
     }
@@ -349,14 +351,18 @@ class FphpCache
         $streamStore = new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir'));
         $streamPrune = $streamStore->prune($maxAge);
 
+        $bytecodeStore = new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir'));
+        $bytecodePrune = $bytecodeStore->prune($maxAge);
+
         $driverPrune = ['deleted_files' => 0, 'freed_bytes' => 0];
         if (method_exists($inst->driver, 'prune')) {
             $driverPrune = $inst->driver->prune($maxAge);
         }
 
         return [
-            'total_deleted' => ($streamPrune['deleted_files'] ?? 0) + ($driverPrune['deleted_files'] ?? 0),
-            'total_freed_bytes' => ($streamPrune['freed_bytes'] ?? 0) + ($driverPrune['freed_bytes'] ?? 0),
+            'total_deleted' => ($streamPrune['deleted_files'] ?? 0) + ($bytecodePrune['deleted_files'] ?? 0) + ($driverPrune['deleted_files'] ?? 0),
+            'total_freed_bytes' => ($streamPrune['freed_bytes'] ?? 0) + ($bytecodePrune['freed_bytes'] ?? 0) + ($driverPrune['freed_bytes'] ?? 0),
+            'bytecode_cache' => $bytecodePrune,
             'stream_cache' => $streamPrune,
             'file_cache' => $driverPrune
         ];
@@ -469,5 +475,65 @@ class FphpCache
     public static function psr6(): \Fphp\Adapter\Psr6CachePool
     {
         return new \Fphp\Adapter\Psr6CachePool(self::instance()->driver);
+    }
+
+    /**
+     * Declare a dynamic hole / island inside cached markup.
+     *
+     * @param string $slot
+     * @param callable|null $resolver
+     * @param string $fallback
+     * @return string
+     */
+    public static function hole(string $slot, ?callable $resolver = null, string $fallback = ''): string
+    {
+        return \Fphp\Fragment\HolePuncher::hole($slot, $resolver, $fallback);
+    }
+
+    /**
+     * Register a dynamic hole resolver.
+     */
+    public static function registerHole(string $slot, callable $resolver): void
+    {
+        \Fphp\Fragment\HolePuncher::register($slot, $resolver);
+    }
+
+    /**
+     * Set a static hole value for current request.
+     */
+    public static function setHoleValue(string $slot, string $value): void
+    {
+        \Fphp\Fragment\HolePuncher::set($slot, $value);
+    }
+
+    /**
+     * Get active BytecodeStore instance.
+     */
+    public static function getBytecodeStore(): \Fphp\FullPage\BytecodeStore
+    {
+        return self::instance()->pageCache->getBytecodeStore();
+    }
+
+    /**
+     * Get active MarkovWarmer instance.
+     */
+    public static function getMarkovWarmer(): ?\Fphp\Warmer\MarkovWarmer
+    {
+        return self::instance()->pageCache->getMarkovWarmer();
+    }
+
+    /**
+     * Generate web server sidecar configuration snippet for kernel bypass.
+     *
+     * @param string $server 'nginx' or 'caddy'
+     * @return string Configuration block
+     */
+    public static function sidecar(string $server = 'nginx'): string
+    {
+        $dir = self::instance()->config->get('cache_dir');
+        return match (strtolower($server)) {
+            'caddy' => \Fphp\Optimizer\ServerConfigGenerator::caddy($dir),
+            default => \Fphp\Optimizer\ServerConfigGenerator::nginx($dir)
+        };
     }
 }

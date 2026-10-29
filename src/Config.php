@@ -54,6 +54,8 @@ class Config
                 ],
                 'send_headers' => true,
                 'etag_enabled' => true,
+                'bytecode_cache' => true, // OPcache Bytecode Transmutation: compiles pages into executable C-memory objects
+                'hole_punching' => true,  // Streaming dynamic holes / island architecture for personalized slots
                 'stale_while_revalidate' => 60,
                 'stale_if_error' => true, // RFC 5861 Disaster recovery: serve stale cache on backend 500 error / crash
                 'purge_enabled' => true,  // RFC HTTP PURGE / BAN method interception
@@ -69,6 +71,12 @@ class Config
                 'collapse_whitespace' => true,
                 'gzip_compression' => true,
                 'compression_level' => 6
+            ],
+
+            // Cache Warmer & Predictive Sequence Prefetcher
+            'warmer' => [
+                'predictive_markov' => true,
+                'markov_threshold' => 0.20
             ],
 
             // Profiling & Stats

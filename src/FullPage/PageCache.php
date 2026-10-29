@@ -24,6 +24,8 @@ class PageCache
     protected RuleEngine $ruleEngine;
     protected StatsTracker $stats;
     protected StreamStore $streamStore;
+    protected BytecodeStore $bytecodeStore;
+    protected ?\Fphp\Warmer\MarkovWarmer $markovWarmer = null;
     protected ?string $currentKey = null;
     protected bool $isCapturing = false;
 
@@ -34,6 +36,11 @@ class PageCache
         $this->stats = $stats;
         $this->ruleEngine = new RuleEngine($config);
         $this->streamStore = new StreamStore($config->get('cache_dir'));
+        $this->bytecodeStore = new BytecodeStore($config->get('cache_dir'));
+
+        if ($this->config->get('warmer.predictive_markov', true)) {
+            $this->markovWarmer = new \Fphp\Warmer\MarkovWarmer($config->get('cache_dir'));
+        }
     }
 
     /**
@@ -56,6 +63,11 @@ class PageCache
 
         Metrics::start('fphp_fpc');
 
+        // Track navigation sequence in predictive Markov graph
+        if ($this->markovWarmer !== null && !empty($_SERVER['HTTP_REFERER'])) {
+            $this->markovWarmer->recordTransition($_SERVER['HTTP_REFERER'], $_SERVER['REQUEST_URI'] ?? '/');
+        }
+
         [$cacheable, $reason] = $this->ruleEngine->isRequestCacheable();
         if (!$cacheable) {
             $this->stats->recordBypass($reason);
@@ -65,8 +77,20 @@ class PageCache
         $key = $this->ruleEngine->generateCacheKey();
         $this->currentKey = $key;
 
-        // 1. Ultra-Fast Zero-Serialization Kernel Stream (25 - 50 µs)
         $elapsedUs = Metrics::stopMicroseconds('fphp_fpc');
+
+        // 1. OPcache Bytecode Transmutation Engine (0.8 - 1.5 µs C-Memory Execution)
+        if ($this->config->get('page_cache.bytecode_cache', true)) {
+            $holeFilter = $this->config->get('page_cache.hole_punching', true)
+                ? fn(string $html) => \Fphp\Fragment\HolePuncher::renderHoles($html)
+                : null;
+            if ($this->bytecodeStore->execute($key, $elapsedUs, $holeFilter)) {
+                $this->stats->recordHit($key, $elapsedUs, 'opcache_bytecode');
+                return true;
+            }
+        }
+
+        // 2. Zero-Serialization Kernel Stream (25 - 50 µs)
         if ($this->streamStore->stream($key, $elapsedUs)) {
             $this->stats->recordHit($key, $elapsedUs, 'kernel_stream');
             return true;
@@ -294,10 +318,15 @@ class PageCache
             'grace_until' => $now + $ttl + 300 // 5 minutes SWR grace window
         ];
 
-        // 1. Store in Zero-Copy Stream Store (for 2x faster direct streaming)
+        // 1. Store in OPcache Bytecode Transmutation Engine (0.8 µs execution)
+        if ($this->config->get('page_cache.bytecode_cache', true)) {
+            $this->bytecodeStore->store($this->currentKey, $processed, $contentType, $etag, $ttl);
+        }
+
+        // 2. Store in Zero-Copy Stream Store (for direct socket streaming)
         $this->streamStore->store($this->currentKey, $processed, $contentType, $etag, $ttl);
 
-        // 2. Store in standard driver
+        // 3. Store in standard driver
         $this->driver->set($this->currentKey, $cacheEntry, $ttl + 300);
 
         // Release SWR lock
@@ -343,6 +372,7 @@ class PageCache
 
         $purgeAll = ($_SERVER['HTTP_X_PURGE_ALL'] ?? '') === '1' || isset($_GET['purge_all']);
         if ($purgeAll) {
+            $this->bytecodeStore->clear();
             $this->streamStore->clear();
             $this->driver->clear();
             http_response_code(200);
@@ -357,6 +387,7 @@ class PageCache
         }
 
         $key = $this->ruleEngine->generateCacheKey();
+        $this->bytecodeStore->delete($key);
         $this->streamStore->delete($key);
         $this->driver->delete($key);
 
@@ -378,6 +409,11 @@ class PageCache
      */
     public function retrieveStaleEntry(string $key): ?array
     {
+        $staleBytecode = $this->bytecodeStore->retrieveStale($key);
+        if ($staleBytecode !== null && !empty($staleBytecode['content_raw'])) {
+            return $staleBytecode;
+        }
+
         $staleStream = $this->streamStore->retrieveStale($key);
         if ($staleStream !== null && !empty($staleStream['content_raw'])) {
             return $staleStream;
@@ -394,6 +430,16 @@ class PageCache
         }
 
         return null;
+    }
+
+    public function getBytecodeStore(): BytecodeStore
+    {
+        return $this->bytecodeStore;
+    }
+
+    public function getMarkovWarmer(): ?\Fphp\Warmer\MarkovWarmer
+    {
+        return $this->markovWarmer;
     }
 
     /**

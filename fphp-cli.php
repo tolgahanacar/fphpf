@@ -121,6 +121,30 @@ switch ($command) {
         echo " [BAŞARILI] Toplam {$count} adet önbellek kaydı silindi.\n";
         break;
 
+    case 'sidecar':
+        $server = isset($flags['server']) ? (string)$flags['server'] : 'nginx';
+        echo "⚡ Web sunucusu Zero-PHP sidecar konfigürasyonu üretiliyor ({$server})...\n\n";
+        echo FphpCache::sidecar($server) . "\n";
+        break;
+
+    case 'predict':
+        $url = $args[1] ?? '/';
+        $markov = FphpCache::getMarkovWarmer();
+        if ($markov === null) {
+            echo " [BİLGİ] Tahminsel Markov ısıtıcı bu konfigürasyonda kapalı.\n";
+            break;
+        }
+        $predictions = $markov->predictNext($url, 0.10);
+        echo "🔮 '{$url}' sayfasından sonraki olası gezinme tahminleri:\n";
+        if (empty($predictions)) {
+            echo "   (Henüz yeterli gezinme verisi toplanmadı)\n";
+        } else {
+            foreach ($predictions as $target => $prob) {
+                echo "   • {$target} -> %" . round($prob * 100, 1) . " olasılık\n";
+            }
+        }
+        break;
+
     case 'help':
     default:
         echo "Kullanılabilir Komutlar:\n";
@@ -130,6 +154,8 @@ switch ($command) {
         echo "  php fphp-cli.php prune           Süresi dolmuş dosyaları diskten temizler (GC)\n";
         echo "  php fphp-cli.php warmup          Kayıtlı sayfaları arka planda ısıtır\n";
         echo "  php fphp-cli.php warmup --sitemap=public/sitemap.xml  Sitemap URL'lerini paralel ısıtır\n";
+        echo "  php fphp-cli.php sidecar --server=nginx  Web sunucusu doğrudan çekirdek bypass kuralı üretir\n";
+        echo "  php fphp-cli.php predict <url>   Tahminsel gezinme olasılıklarını listeler\n";
         echo "  php fphp-cli.php preload         OPcache preload.php dosyasını günceller\n";
         echo "  php fphp-cli.php bench           Canlı performans hız testini çalıştırır\n";
         break;
