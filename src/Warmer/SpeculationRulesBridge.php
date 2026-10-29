@@ -177,3 +177,4 @@ class SpeculationRulesBridge
         return '/' . ltrim($path, '/');
     }
 }
+
