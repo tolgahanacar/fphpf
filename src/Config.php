@@ -33,7 +33,7 @@ class Config
                 'ttl' => 1800,
                 'strip_query_params' => [
                     'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-                    'fbclid', 'gclid', 'ref', 'source', '_t', 'timestamp', 'cb'
+                    'fbclid', 'gclid', 'ref', 'source', '_t', 'timestamp', 'cb', '_cb', '_', 't', 'cache_bust'
                 ],
                 'excluded_urls' => [
                     '#/admin#i',

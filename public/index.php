@@ -101,52 +101,58 @@ $pid = FphpCache::getPidController();
 $pidData = $pid ? $pid->getTelemetry() : [];
 $swrGrace = FphpCache::adaptSwr(60);
 
-// Markov Verileri
+// Markov Verileri (Sadece Zeka sayfasında yükle)
 $markovMatrix = [];
-$markovFile = dirname(__DIR__) . '/cache/markov_transitions.json';
-if (file_exists($markovFile)) {
-    $rawM = @file_get_contents($markovFile);
-    $markovMatrix = $rawM ? (json_decode($rawM, true) ?? []) : [];
-}
-
-// Lineage Verileri
-$lineageFile = dirname(__DIR__) . '/cache/lineage_graph.json';
-$lineageData = ['entity_to_artifacts' => []];
-if (file_exists($lineageFile)) {
-    $rawL = @file_get_contents($lineageFile);
-    $lineageData = $rawL ? (json_decode($rawL, true) ?? $lineageData) : $lineageData;
-}
-
-// Dosya Gezgini Listesi
-$cacheFiles = [];
-$cacheDir = dirname(__DIR__) . '/cache';
-if (is_dir($cacheDir)) {
-    $it = new \RecursiveIteratorIterator(
-        new \RecursiveDirectoryIterator($cacheDir, \FilesystemIterator::SKIP_DOTS),
-        \RecursiveIteratorIterator::LEAVES_ONLY
-    );
-    foreach ($it as $f) {
-        /** @var \SplFileInfo $f */
-        $name = $f->getFilename();
-        if ($name === '.gitkeep' || str_ends_with($name, '.json')) continue;
-        $ext = strtolower($f->getExtension());
-        $type = match ($ext) {
-            'php' => 'OPcache Bytecode (C-RAM)',
-            'fpc' => 'Ham Soket Akışı (Stream)',
-            'gz'  => 'Gzip Hazır Sıkıştırılmış',
-            default => 'Veri Önbelleği'
-        };
-        $cacheFiles[] = [
-            'name' => $name,
-            'path' => $f->getPathname(),
-            'type' => $type,
-            'size' => Metrics::formatBytes($f->getSize()),
-            'mtime' => date('H:i:s d.m.Y', $f->getMTime()),
-            'raw_mtime' => $f->getMTime()
-        ];
-        if (count($cacheFiles) >= 60) break;
+if ($page === 'intelligence') {
+    $markovFile = dirname(__DIR__) . '/cache/markov_transitions.json';
+    if (file_exists($markovFile)) {
+        $rawM = @file_get_contents($markovFile);
+        $markovMatrix = $rawM ? (json_decode($rawM, true) ?? []) : [];
     }
-    usort($cacheFiles, fn($a, $b) => $b['raw_mtime'] <=> $a['raw_mtime']);
+}
+
+// Lineage Verileri (Sadece Zeka sayfasında yükle)
+$lineageData = ['entity_to_artifacts' => []];
+if ($page === 'intelligence') {
+    $lineageFile = dirname(__DIR__) . '/cache/lineage_graph.json';
+    if (file_exists($lineageFile)) {
+        $rawL = @file_get_contents($lineageFile);
+        $lineageData = $rawL ? (json_decode($rawL, true) ?? $lineageData) : $lineageData;
+    }
+}
+
+// Dosya Gezgini Listesi (Sadece Dosyalar veya İstatistik sayfasında yükle)
+$cacheFiles = [];
+if ($page === 'files' || $page === 'stats') {
+    $cacheDir = dirname(__DIR__) . '/cache';
+    if (is_dir($cacheDir)) {
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($cacheDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY
+        );
+        foreach ($it as $f) {
+            /** @var \SplFileInfo $f */
+            $name = $f->getFilename();
+            if ($name === '.gitkeep' || str_ends_with($name, '.json')) continue;
+            $ext = strtolower($f->getExtension());
+            $type = match ($ext) {
+                'php' => 'OPcache Bytecode (C-RAM)',
+                'fpc' => 'Ham Soket Akışı (Stream)',
+                'gz'  => 'Gzip Hazır Sıkıştırılmış',
+                default => 'Veri Önbelleği'
+            };
+            $cacheFiles[] = [
+                'name' => $name,
+                'path' => $f->getPathname(),
+                'type' => $type,
+                'size' => Metrics::formatBytes($f->getSize()),
+                'mtime' => date('H:i:s d.m.Y', $f->getMTime()),
+                'raw_mtime' => $f->getMTime()
+            ];
+            if (count($cacheFiles) >= 60) break;
+        }
+        usort($cacheFiles, fn($a, $b) => $b['raw_mtime'] <=> $a['raw_mtime']);
+    }
 }
 
 // Canlı Dinamik Ada (Hole Punching) Slotları
@@ -952,28 +958,33 @@ require_once __DIR__ . '/fphp-bootstrap.php';
 
     <script>
         async function testLiveFetch(isBypass) {
-            const url = isBypass ? 'index.php?fphp_bypass=1&_cb=' + Date.now() : 'index.php?_cb=' + Date.now();
+            // Önbellekli istekte sabit URL istenir. Rastgele zaman damgası eklenirse her istek yeni bir sayfa (MISS) sayılır!
+            const url = isBypass ? 'index.php?fphp_bypass=1' : 'index.php';
             const t0 = performance.now();
 
             try {
-                const res = await fetch(url);
-                const elapsed = (performance.now() - t0).toFixed(2);
+                const res = await fetch(url, { cache: 'no-store' });
+                const roundtripMs = (performance.now() - t0).toFixed(1);
                 
-                const cacheH = res.headers.get('x-fphp-cache') || (isBypass ? 'BYPASS (Önbelleksiz İstek)' : 'HIT (Önbellekten Döndü)');
+                const cacheH = res.headers.get('x-fphp-cache') || (isBypass ? 'BYPASS (Önbelleksiz İstek)' : 'HIT');
                 const timeH = res.headers.get('x-fphp-time') || (isBypass ? '12.50ms' : '0.15ms');
                 const speedupH = res.headers.get('x-fphp-speedup') || (isBypass ? '1x' : '~80x');
 
-                document.getElementById('kpi-status').textContent = isBypass ? 'BYPASS' : 'HIT';
-                document.getElementById('kpi-status').style.color = isBypass ? 'var(--accent-red)' : 'var(--accent-green)';
-                document.getElementById('kpi-driver').textContent = isBypass ? 'Ağır Veritabanı Döngüsü Çalıştı' : 'C-RAM OPcache Bytecode';
+                const isHit = cacheH.includes('HIT');
 
-                document.getElementById('kpi-time').textContent = isBypass ? (elapsed + ' ms') : '0.15 ms';
-                document.getElementById('kpi-time').style.color = isBypass ? 'var(--accent-amber)' : 'var(--accent-cyan)';
+                document.getElementById('kpi-status').textContent = isHit ? 'HIT (Önbellekte)' : (isBypass ? 'BYPASS' : 'MISS');
+                document.getElementById('kpi-status').style.color = isHit ? 'var(--accent-green)' : 'var(--accent-red)';
+                document.getElementById('kpi-driver').textContent = isHit ? 'OPcache C-RAM / Bytecode' : 'Ağır PHP & Veritabanı Döngüsü';
 
-                document.getElementById('kpi-db').textContent = isBypass ? '%100 Yük' : '%0 Yük';
-                document.getElementById('kpi-db').style.color = isBypass ? 'var(--accent-red)' : 'var(--accent-green)';
+                document.getElementById('kpi-time').textContent = timeH;
+                document.getElementById('kpi-time').style.color = isHit ? 'var(--accent-cyan)' : 'var(--accent-amber)';
+                document.getElementById('kpi-time').nextElementSibling.textContent = 'Tarayıcı-Sunucu Ağ Turu: ' + roundtripMs + ' ms';
 
-                document.getElementById('kpi-speedup').textContent = isBypass ? '1x' : speedupH;
+                document.getElementById('kpi-db').textContent = isHit ? '%0 Yük' : '%100 Yük';
+                document.getElementById('kpi-db').style.color = isHit ? 'var(--accent-green)' : 'var(--accent-red)';
+                document.getElementById('kpi-db').nextElementSibling.textContent = isHit ? '0 DB sorgusu, sıfır CPU kaybı' : 'Veritabanı ve framework çalıştı';
+
+                document.getElementById('kpi-speedup').textContent = isHit ? speedupH : '1x';
 
                 let dump = 'HTTP/1.1 ' + res.status + ' ' + res.statusText + '\n';
                 res.headers.forEach((v, k) => {
