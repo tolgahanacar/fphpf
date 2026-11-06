@@ -14,16 +14,8 @@ use Fphp\Profiler\Metrics;
 // ==============================================================
 // 1. ÖNBELLEK ÇEKİRDEĞİNİ BAŞLAT (FULL PAGE BOOT)
 // ==============================================================
-// Eğer URL'de özel bir yönetim sayfası veya eylem yoksa FPHP Full Page Microcache devreye girer
 $page = $_GET['page'] ?? 'demo';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-$theme = $_GET['theme'] ?? $_COOKIE['fphp_theme'] ?? '90s';
-if ($theme === '1996') {
-    $theme = '90s';
-}
-if (isset($_GET['theme'])) {
-    @setcookie('fphp_theme', $theme, time() + 86400 * 30, '/');
-}
 
 // Sadece normal demo isteklerinde page cache tam devrede olsun
 if ($page === 'demo' && empty($action) && empty($_GET['fphp_bypass'])) {
@@ -156,7 +148,7 @@ if ($page === 'files' || $page === 'stats') {
                 'mtime' => date('H:i:s d.m.Y', $f->getMTime()),
                 'raw_mtime' => $f->getMTime()
             ];
-            if (count($cacheFiles) >= 60) break;
+            if (count($cacheFiles) >= 80) break;
         }
         usort($cacheFiles, fn($a, $b) => $b['raw_mtime'] <=> $a['raw_mtime']);
     }
@@ -168,8 +160,8 @@ $dynamicClock = \Fphp\FphpCache::hole('live_clock', function () {
 }, fallback: date('H:i:s'));
 
 $dynamicVisitor = \Fphp\FphpCache::hole('live_visitor', function () {
-    return 'USER-' . substr(md5($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1' . microtime()), 0, 6);
-}, fallback: 'USER-DEMO');
+    return 'UBUNTU-USER-' . substr(md5($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1' . microtime()), 0, 6);
+}, fallback: 'UBUNTU-USER-DEMO');
 
 // Benchmark Çalıştırma Fonksiyonu
 $benchResults = null;
@@ -215,1223 +207,989 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPHP Cache - Merkezi Yönetim ve Hızlandırma Konsolu</title>
+    <title>Ubuntu Desktop — FPHP Cache Denetim Merkezi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #090a0f;
-            --surface: #11141c;
-            --surface-elevated: #161a24;
-            --border: #232838;
-            --border-hover: #374151;
-            --text-primary: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --text-muted: #6b7280;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-cyan: #06b6d4;
-            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* Canonical Ubuntu Color Palette */
+            --ub-aubergine-dark: #2C001E;
+            --ub-aubergine-mid: #5E2750;
+            --ub-aubergine-light: #77216F;
+            --ub-orange: #E95420;
+            --ub-orange-hover: #ff6e3a;
+            --ub-orange-active: #d34615;
+            --ub-warm-grey: #AEA79F;
+            --ub-cool-grey: #333333;
+            --ub-jet: #111111;
+            --ub-dark-window: #242424;
+            --ub-headerbar: #2D2D2D;
+            --ub-headerbar-border: #1E1E1E;
+            --ub-card: #2E2E2E;
+            --ub-card-border: #3A3A3A;
+            --ub-text-light: #F5F5F5;
+            --ub-text-muted: #A6A6A6;
+            --ub-text-subtle: #757575;
+            --ub-success: #26A269;
+            --ub-danger: #C7162B;
+            --ub-danger-hover: #E01B24;
+            --ub-info: #1C71D8;
+            --ub-warning: #F5C211;
+            
+            --font-ubuntu: 'Ubuntu', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'Ubuntu Mono', monospace;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background-color: var(--bg);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
+            background: radial-gradient(ellipse at 80% 20%, var(--ub-aubergine-light) 0%, var(--ub-aubergine-mid) 32%, var(--ub-aubergine-dark) 65%, #14000e 100%);
+            background-attachment: fixed;
+            color: var(--ub-text-light);
+            font-family: var(--font-ubuntu);
             font-size: 14px;
             line-height: 1.5;
             min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
         }
 
-        /* HEADER */
-        .top-nav {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            padding: 0.75rem 1.5rem;
+        /* ============================================================== */
+        /* 1. UBUNTU TOP PANEL (BAR)                                      */
+        /* ============================================================== */
+        .ubuntu-panel {
+            height: 32px;
+            background: rgba(14, 14, 14, 0.98);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.6);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 12px;
+            font-size: 13px;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
         }
-        .brand {
+
+        .panel-left, .panel-center, .panel-right {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            font-size: 1.15rem;
-            font-weight: 700;
-        }
-        .brand-pill {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            padding: 2px 6px;
-            background: var(--surface-elevated);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--accent-blue);
+            gap: 12px;
         }
 
-        .main-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-
-        /* UNIFIED TABS */
-        .tab-bar {
-            display: flex;
-            gap: 0.25rem;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 1.5rem;
-            overflow-x: auto;
-        }
-        .tab-item {
-            padding: 0.7rem 1.1rem;
-            color: var(--text-secondary);
-            text-decoration: none;
+        .activities-btn {
+            padding: 3px 12px;
+            border-radius: 12px;
+            color: #eeeeee;
             font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .activities-btn:hover, .activities-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+
+        .panel-app-name {
             font-weight: 600;
-            border-bottom: 2px solid transparent;
+            color: #ffffff;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
-            white-space: nowrap;
+            gap: 6px;
         }
-        .tab-item:hover { color: var(--text-primary); }
-        .tab-item.active {
-            color: var(--accent-blue);
-            border-bottom-color: var(--accent-blue);
+        .panel-app-name::before {
+            content: '●';
+            color: var(--ub-orange);
+            font-size: 10px;
         }
 
-        /* ALERT */
-        .alert {
-            padding: 0.75rem 1rem;
-            border-radius: 4px;
-            margin-bottom: 1.25rem;
-            font-size: 13px;
-            border: 1px solid var(--border);
-            background: var(--surface);
+        .panel-clock {
+            font-weight: 500;
+            color: #e5e5e5;
+            cursor: pointer;
+            padding: 2px 10px;
+            border-radius: 12px;
+            transition: background 0.15s;
         }
-        .alert.success { border-left: 4px solid var(--accent-green); }
-        .alert.danger  { border-left: 4px solid var(--accent-red); }
+        .panel-clock:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
 
-        /* EXPLAINER CALLOUT */
-        .explainer {
-            background: rgba(59, 130, 246, 0.08);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            border-radius: 6px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.5rem;
+        .panel-tray-item {
             display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: #dedede;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
         }
-        .explainer-title {
+        .panel-tray-item:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .tray-cram-pill {
+            background: rgba(38, 162, 105, 0.2);
+            border: 1px solid rgba(38, 162, 105, 0.4);
+            color: #4cd995;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* ============================================================== */
+        /* 2. DESKTOP WORKSPACE & DOCK LAYOUT                             */
+        /* ============================================================== */
+        .ubuntu-workspace {
+            display: flex;
+            height: calc(100vh - 32px);
+            position: relative;
+        }
+
+        /* LEFT DOCK / LAUNCHER */
+        .ubuntu-dock {
+            width: 70px;
+            background: rgba(18, 18, 18, 0.88);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 0;
+            gap: 12px;
+            z-index: 500;
+            backdrop-filter: blur(16px);
+        }
+
+        .dock-item {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            position: relative;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s;
+            cursor: pointer;
+        }
+        .dock-item:hover {
+            transform: scale(1.12);
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .dock-item.active {
+            background: rgba(233, 84, 32, 0.22);
+            border-color: var(--ub-orange);
+        }
+        /* Classic Ubuntu Running Dot Indicator */
+        .dock-item.active::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            width: 4px;
+            height: 20px;
+            background: var(--ub-orange);
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 0 8px var(--ub-orange);
+        }
+
+        .dock-icon {
+            font-size: 24px;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .dock-separator {
+            width: 36px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.12);
+            margin: 4px 0;
+        }
+
+        .dock-spacer {
+            flex: 1;
+        }
+
+        /* UBUNTU TOOLTIP */
+        .dock-item .dock-tooltip {
+            visibility: hidden;
+            position: absolute;
+            left: 78px;
+            background: #111111;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            border: 1px solid #333333;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .dock-item:hover .dock-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* ============================================================== */
+        /* 3. WINDOW AREA (YARU DARK WINDOW)                              */
+        /* ============================================================== */
+        .ubuntu-stage {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            user-select: text;
+        }
+
+        .ubuntu-window {
+            background: var(--ub-dark-window);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-width: 1300px;
+            width: 100%;
+            margin: 0 auto;
+            transition: all 0.25s ease;
+        }
+
+        .ubuntu-window.maximized {
+            max-width: 100%;
+            border-radius: 0;
+            margin: -20px -30px;
+            height: calc(100vh - 32px);
+            border: none;
+        }
+
+        /* YARU HEADERBAR */
+        .ubuntu-headerbar {
+            height: 48px;
+            background: var(--ub-headerbar);
+            border-bottom: 1px solid var(--ub-headerbar-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            user-select: none;
+        }
+
+        .headerbar-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .headerbar-app-icon {
+            font-size: 20px;
+        }
+        .headerbar-title {
             font-weight: 700;
-            color: #93c5fd;
-            margin-bottom: 0.25rem;
-            font-size: 13px;
+            font-size: 13.5px;
+            color: #ffffff;
+            letter-spacing: -0.01em;
         }
-        .explainer-text {
-            color: var(--text-secondary);
+        .headerbar-subtitle {
+            font-size: 11px;
+            color: var(--ub-text-muted);
+            font-family: var(--font-mono);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        /* GNOME HEADERBAR TABS */
+        .ubuntu-tab-bar {
+            display: flex;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 3px;
+        }
+        .ubuntu-tab {
+            padding: 5px 14px;
+            border-radius: 6px;
+            color: #cccccc;
+            text-decoration: none;
+            font-size: 12.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.12s, color 0.12s;
+        }
+        .ubuntu-tab:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .ubuntu-tab.active {
+            background: var(--ub-orange);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(233, 84, 32, 0.4);
+        }
+
+        /* YARU WINDOW CONTROLS (RIGHT) */
+        .ubuntu-window-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .win-control-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #dedede;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .win-control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+        .win-control-close:hover {
+            background: var(--ub-orange);
+            color: #ffffff;
+        }
+
+        /* WINDOW BODY */
+        .ubuntu-window-body {
+            padding: 24px 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* ============================================================== */
+        /* 4. NOTIFICATIONS, CARDS & KPIS                                 */
+        /* ============================================================== */
+        .ub-alert {
+            background: rgba(46, 46, 46, 0.9);
+            border: 1px solid var(--ub-card-border);
+            border-left: 5px solid var(--ub-orange);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13.5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .ub-alert.success { border-left-color: var(--ub-success); }
+        .ub-alert.danger  { border-left-color: var(--ub-danger); }
+
+        .ub-banner {
+            background: linear-gradient(135deg, rgba(119, 33, 111, 0.3) 0%, rgba(233, 84, 32, 0.15) 100%);
+            border: 1px solid rgba(233, 84, 32, 0.3);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 22px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .ub-banner-icon {
+            font-size: 28px;
+            line-height: 1;
+        }
+        .ub-banner-title {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+        .ub-banner-desc {
             font-size: 13px;
+            color: var(--ub-warm-grey);
             line-height: 1.45;
         }
 
-        /* KPIS */
-        .kpi-row {
+        /* KPI STATS ROW */
+        .ub-kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
         }
-        .kpi-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1.15rem;
+        .ub-kpi-card {
+            background: var(--ub-card);
+            border: 1px solid var(--ub-card-border);
+            border-radius: 10px;
+            padding: 16px 18px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.15s, border-color 0.15s;
         }
-        .kpi-label {
+        .ub-kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(233, 84, 32, 0.4);
+        }
+        .ub-kpi-label {
             font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            letter-spacing: 0.04em;
-            margin-bottom: 0.35rem;
-        }
-        .kpi-val {
-            font-family: var(--font-mono);
-            font-size: 1.75rem;
             font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ub-text-muted);
+            margin-bottom: 6px;
         }
-        .kpi-sub {
+        .ub-kpi-value {
+            font-family: var(--font-mono);
+            font-size: 1.85rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: #ffffff;
+        }
+        .ub-kpi-sub {
             font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 0.2rem;
+            color: var(--ub-text-muted);
+            margin-top: 4px;
         }
 
-        /* CARDS AND GRIDS */
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin-bottom: 1.5rem;
+        /* PANELS & SECTIONS */
+        .ub-panel {
+            background: var(--ub-card);
+            border: 1px solid var(--ub-card-border);
+            border-radius: 10px;
+            margin-bottom: 22px;
             overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
-        .panel-header {
-            padding: 0.75rem 1.15rem;
-            background: var(--surface-elevated);
-            border-bottom: 1px solid var(--border);
+        .ub-panel-header {
+            background: #252525;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--ub-card-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        .panel-title {
-            font-size: 13px;
+        .ub-panel-title {
+            font-size: 13.5px;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--text-secondary);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .panel-body {
-            padding: 1.15rem;
+        .ub-panel-body {
+            padding: 18px;
         }
 
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
+            gap: 20px;
         }
-        @media (max-width: 820px) {
+        @media (max-width: 900px) {
             .grid-2 { grid-template-columns: 1fr; }
         }
 
-        /* TABLES */
-        .table {
+        /* UBUNTU TABLES */
+        .ub-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
             text-align: left;
         }
-        .table th {
-            background: var(--surface-elevated);
-            color: var(--text-muted);
+        .ub-table th {
+            background: #202020;
+            color: var(--ub-text-muted);
             font-weight: 600;
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 0.6rem 0.85rem;
-            border-bottom: 1px solid var(--border);
+            letter-spacing: 0.04em;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--ub-card-border);
         }
-        .table td {
-            padding: 0.65rem 0.85rem;
-            border-bottom: 1px solid var(--border);
+        .ub-table td {
+            padding: 11px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e5e5e5;
         }
-        .table tr:hover td { background: rgba(255, 255, 255, 0.015); }
-        .mono { font-family: var(--font-mono); font-size: 12px; }
+        .ub-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
 
-        /* BUTTONS & INPUTS */
-        .btn {
-            font-family: var(--font-sans);
-            font-size: 12px;
+        /* BUTTONS & FORM ELEMENTS */
+        .btn-ubuntu {
+            font-family: var(--font-ubuntu);
+            font-size: 13px;
             font-weight: 600;
-            padding: 0.45rem 0.85rem;
-            border-radius: 4px;
-            border: 1px solid var(--border);
-            background: var(--surface-elevated);
-            color: var(--text-primary);
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--ub-orange-active);
+            background: var(--ub-orange);
+            color: #ffffff;
             cursor: pointer;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 6px;
+            transition: background 0.15s, transform 0.1s;
         }
-        .btn:hover { background: #1f2433; border-color: var(--border-hover); }
-        .btn-primary { background: #2563eb; border-color: #1d4ed8; color: #fff; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+        .btn-ubuntu:hover {
+            background: var(--ub-orange-hover);
+        }
+        .btn-ubuntu:active {
+            transform: scale(0.98);
+        }
 
-        .btn-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+        .btn-ubuntu-secondary {
+            font-family: var(--font-ubuntu);
+            font-size: 13px;
+            font-weight: 500;
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            color: #f0f0f0;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s;
         }
-        .input-text {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 0.45rem 0.75rem;
-            color: var(--text-primary);
+        .btn-ubuntu-secondary:hover {
+            background: rgba(255, 255, 255, 0.16);
+            color: #ffffff;
+        }
+
+        .btn-ubuntu-danger {
+            font-family: var(--font-ubuntu);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--ub-danger);
+            background: var(--ub-danger);
+            color: #ffffff;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s;
+        }
+        .btn-ubuntu-danger:hover {
+            background: var(--ub-danger-hover);
+        }
+
+        .ub-input {
+            background: #181818;
+            border: 1px solid var(--ub-card-border);
+            border-radius: 6px;
+            padding: 7px 12px;
+            color: #ffffff;
             font-family: var(--font-mono);
-            font-size: 12px;
+            font-size: 13px;
             outline: none;
         }
-        .input-text:focus { border-color: var(--accent-blue); }
-
-        /* PILLS */
-        .pill {
-            display: inline-block;
-            font-size: 11px;
-            font-family: var(--font-mono);
-            font-weight: 600;
-            padding: 2px 7px;
-            border-radius: 4px;
-            border: 1px solid transparent;
+        .ub-input:focus {
+            border-color: var(--ub-orange);
+            box-shadow: 0 0 0 2px rgba(233, 84, 32, 0.25);
         }
-        .pill-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
-        .pill-blue  { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
-        .pill-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-        .pill-gray  { background: var(--surface-elevated); color: var(--text-muted); border-color: var(--border); }
 
-        .code-snippet {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 0.85rem;
+        /* CODE SNIPPET (UBUNTU TERMINAL) */
+        .ub-terminal {
+            background: #181818;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 14px 16px;
             font-family: var(--font-mono);
-            font-size: 12px;
-            color: #93c5fd;
+            font-size: 12.5px;
+            color: #8ae234;
             overflow-x: auto;
             white-space: pre-wrap;
+            line-height: 1.45;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
-        /* ============================================================== */
-        /* 90'S RETRO CYBER-WEB THEME (NOSTALGIA EDITION)                 */
-        /* ============================================================== */
-        body.theme-90s,
-        body.theme-retro {
-            background-color: #008080 !important; /* 90'lar Klasik Turkuaz Masaüstü */
-            background-image: radial-gradient(rgba(0, 0, 0, 0.15) 15%, transparent 16%) !important;
-            background-size: 6px 6px !important;
-            color: #000000 !important;
-            font-family: "Times New Roman", Times, Georgia, serif !important;
-            font-size: 14px !important;
-            padding: 10px !important;
-        }
-
-        body.theme-90s a, body.theme-retro a { color: #0000ff !important; text-decoration: underline !important; }
-        body.theme-90s a:visited, body.theme-retro a:visited { color: #800080 !important; }
-        body.theme-90s a:active, body.theme-retro a:active { color: #ff0000 !important; }
-
-        body.theme-90s .browser-window,
-        body.theme-retro .browser-window {
-            max-width: 1020px;
-            margin: 0 auto;
-            background: #c0c0c0;
-            border: 3px outset #ffffff;
-            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.6);
-        }
-
-        body.theme-90s .win-titlebar,
-        body.theme-retro .win-titlebar {
-            background: linear-gradient(90deg, #000080, #1084d0);
-            color: #ffffff;
-            padding: 3px 6px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 12px;
-            font-weight: bold;
-            user-select: none;
-            border-bottom: 1px solid #000;
-        }
-
-        body.theme-90s .win-controls,
-        body.theme-retro .win-controls {
-            display: flex;
-            gap: 2px;
-        }
-        body.theme-90s .win-btn,
-        body.theme-retro .win-btn {
-            width: 16px;
-            height: 14px;
-            background: #c0c0c0;
-            border: 1px outset #ffffff;
-            font-size: 9px;
-            font-weight: bold;
-            line-height: 12px;
-            text-align: center;
-            color: #000000;
-            cursor: pointer;
-            box-shadow: 1px 1px 0px #000;
-        }
-
-        body.theme-90s .win-menubar,
-        body.theme-retro .win-menubar {
-            background: #c0c0c0;
-            border-bottom: 1px solid #808080;
-            padding: 3px 8px;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            display: flex;
-            gap: 12px;
-            color: #000;
-        }
-
-        body.theme-90s .win-toolbar,
-        body.theme-retro .win-toolbar {
-            background: #c0c0c0;
-            border-bottom: 2px groove #ffffff;
-            padding: 4px 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        body.theme-90s .win-tool-group,
-        body.theme-retro .win-tool-group {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-
-        body.theme-90s .win-tool-btn,
-        body.theme-retro .win-tool-btn {
-            background: #c0c0c0;
-            border: 2px outset #ffffff;
-            padding: 2px 7px;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            font-weight: bold;
-            color: #000 !important;
-            text-decoration: none !important;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            box-shadow: 1px 1px 0px #000;
-        }
-        body.theme-90s .win-tool-btn:active,
-        body.theme-retro .win-tool-btn:active {
-            border: 2px inset #ffffff;
-        }
-
-        body.theme-90s .win-urlbar,
-        body.theme-retro .win-urlbar {
-            background: #c0c0c0;
-            border-bottom: 2px groove #ffffff;
-            padding: 4px 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        body.theme-90s .win-url-input,
-        body.theme-retro .win-url-input {
-            flex: 1;
-            background: #ffffff;
-            border: 2px inset #ffffff;
-            padding: 2px 6px;
-            font-family: "Courier New", monospace;
-            font-size: 12px;
-            color: #000;
-        }
-
-        body.theme-90s .retro-content-wrap,
-        body.theme-retro .retro-content-wrap {
-            background: #ffffff;
-            border: 2px inset #ffffff;
-            margin: 8px;
-            padding: 16px;
-            color: #000;
-        }
-
-        body.theme-90s .tab-bar,
-        body.theme-retro .tab-bar {
-            background: #c0c0c0 !important;
-            border-bottom: 2px groove #ffffff !important;
-            padding: 6px 8px 0 8px !important;
-            gap: 3px !important;
-        }
-        body.theme-90s .tab-item,
-        body.theme-retro .tab-item {
-            background: #c0c0c0 !important;
-            border: 2px outset #ffffff !important;
-            border-bottom: none !important;
-            border-radius: 4px 4px 0 0 !important;
-            color: #000000 !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            font-size: 11px !important;
-            font-weight: bold !important;
-            padding: 4px 10px !important;
-            box-shadow: 1px 1px 0px #000;
-        }
-        body.theme-90s .tab-item.active,
-        body.theme-retro .tab-item.active {
-            background: #ffffff !important;
-            border-bottom: 2px solid #ffffff !important;
-            color: #000080 !important;
-            margin-bottom: -2px !important;
-        }
-
-        body.theme-90s .btn,
-        body.theme-retro .btn {
-            background: #c0c0c0 !important;
-            border: 2px outset #ffffff !important;
-            color: #000000 !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            font-size: 12px !important;
-            font-weight: bold !important;
-            border-radius: 0 !important;
-            box-shadow: 1px 1px 0px #000000 !important;
-            padding: 4px 12px !important;
-            cursor: pointer !important;
-            text-decoration: none !important;
-        }
-        body.theme-90s .btn:active,
-        body.theme-retro .btn:active {
-            border: 2px inset #ffffff !important;
-        }
-        body.theme-90s .btn-primary,
-        body.theme-retro .btn-primary {
-            background: #000080 !important;
-            color: #ffff00 !important;
-            border: 2px outset #ffffff !important;
-        }
-        body.theme-90s .btn-danger,
-        body.theme-retro .btn-danger {
-            background: #800000 !important;
-            color: #ffffff !important;
-            border: 2px outset #ffffff !important;
-        }
-
-        body.theme-90s .panel,
-        body.theme-retro .panel {
-            background: #e4e4e4 !important;
-            border: 2px groove #ffffff !important;
-            border-radius: 0 !important;
-            margin-bottom: 1.25rem !important;
-        }
-        body.theme-90s .panel-header,
-        body.theme-retro .panel-header {
-            background: #c0c0c0 !important;
-            border-bottom: 2px groove #ffffff !important;
-        }
-        body.theme-90s .panel-title,
-        body.theme-retro .panel-title {
-            color: #000080 !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            font-weight: bold !important;
-            font-size: 12px !important;
-        }
-        body.theme-90s .panel-body,
-        body.theme-retro .panel-body {
-            color: #000000 !important;
-        }
-
-        body.theme-90s .kpi-card,
-        body.theme-retro .kpi-card {
-            background: #ffffff !important;
-            border: 2px inset #ffffff !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-        }
-        body.theme-90s .kpi-label,
-        body.theme-retro .kpi-label {
-            color: #000080 !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            font-weight: bold !important;
-        }
-        body.theme-90s .kpi-val,
-        body.theme-retro .kpi-val {
-            font-family: "Courier New", monospace !important;
-            font-weight: bold !important;
-            color: #008000 !important;
-        }
-        body.theme-90s .kpi-sub,
-        body.theme-retro .kpi-sub {
-            color: #555555 !important;
-            font-family: "Times New Roman", Times, serif !important;
-        }
-
-        body.theme-90s .code-snippet,
-        body.theme-retro .code-snippet {
-            background: #000000 !important;
-            color: #00ff00 !important;
-            border: 3px inset #808080 !important;
-            border-radius: 0 !important;
-            font-family: "Lucida Console", "Courier New", monospace !important;
-            font-size: 13px !important;
-            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2) !important;
-        }
-
-        body.theme-90s .table,
-        body.theme-retro .table {
-            border: 2px inset #ffffff !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-        }
-        body.theme-90s .table th,
-        body.theme-retro .table th {
-            background: #000080 !important;
-            color: #ffffff !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            border: 1px solid #c0c0c0 !important;
-        }
-        body.theme-90s .table td,
-        body.theme-retro .table td {
-            border: 1px solid #dcdcdc !important;
-            color: #000000 !important;
-        }
-
-        body.theme-90s .explainer,
-        body.theme-retro .explainer {
-            background: #ffffcc !important;
-            border: 2px inset #ffffff !important;
-            border-radius: 0 !important;
-            color: #000000 !important;
-        }
-        body.theme-90s .explainer-title,
-        body.theme-retro .explainer-title {
-            color: #000080 !important;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
-            font-size: 13px !important;
-        }
-        body.theme-90s .explainer-text,
-        body.theme-retro .explainer-text {
-            color: #000000 !important;
-        }
-
-        body.theme-90s .win-statusbar,
-        body.theme-retro .win-statusbar {
-            background: #c0c0c0;
-            border-top: 2px groove #ffffff;
-            padding: 3px 6px;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            display: flex;
-            gap: 6px;
-        }
-        body.theme-90s .win-status-pane,
-        body.theme-retro .win-status-pane {
-            border: 1px inset #ffffff;
-            padding: 1px 6px;
-            background: #c0c0c0;
-        }
-
-        /* RETRO SPECIAL GRAPHICS */
-        .blink {
-            animation: retroBlink 0.75s step-start infinite;
-        }
-        @keyframes retroBlink {
-            50% { opacity: 0; }
-        }
-
-        .rainbow-hr {
-            height: 4px;
-            background: linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet);
-            border: none;
-            margin: 12px 0;
-        }
-
-        .hazard-stripe {
-            background: repeating-linear-gradient(45deg, #ffcc00, #ffcc00 12px, #000000 12px, #000000 24px);
-            height: 14px;
-            border: 1px solid #000;
-            margin: 10px 0;
-        }
-
-        .retro-counter {
-            display: inline-flex;
-            align-items: center;
-            background: #000;
-            padding: 3px 6px;
-            border: 2px inset #ffffff;
-            font-family: "Courier New", monospace;
-            font-weight: bold;
-            color: #00ff00;
-        }
-        .retro-counter span {
-            background: #111;
-            color: #00ff00;
-            border: 1px solid #333;
-            padding: 1px 5px;
-            margin: 0 1px;
-            font-size: 15px;
-        }
-
-        .retro-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 1.5rem;
-            padding: 12px;
-            border-top: 2px groove #ffffff;
-            background: #e4e4e4;
-        }
-        .retro-badge-box {
-            border: 2px outset #ffffff;
-            background: #c0c0c0;
-            padding: 3px 8px;
-            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
-            font-size: 10px;
-            font-weight: bold;
-            color: #000000;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            box-shadow: 1px 1px 0px #000;
-        }
-
-        .theme-pill-switch {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* ============================================================== */
-        /* MODERN MASAÜSTÜ SİSTEM KABUĞU (DESKTOP ENVIRONMENT)           */
-        /* ============================================================== */
-        body.theme-modern {
-            background: radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12), transparent 45%),
-                        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08), transparent 45%),
-                        #0a0e17 !important;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .os-desktop-bar {
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(14px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            height: 42px;
-            padding: 0 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .os-app-menu {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 700;
-            font-size: 13px;
-            color: #f3f4f6;
-            padding: 4px 10px;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            cursor: pointer;
-            user-select: none;
-        }
-        .os-app-menu:hover { background: rgba(255, 255, 255, 0.1); }
-
-        .os-workspaces {
-            display: flex;
-            gap: 4px;
-            margin-left: 8px;
-        }
-        .os-workspace-btn {
-            width: 22px;
-            height: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .ub-pill {
+            display: inline-block;
             font-size: 11px;
             font-family: var(--font-mono);
+            font-weight: 600;
+            padding: 2px 8px;
             border-radius: 4px;
-            background: rgba(255, 255, 255, 0.04);
-            color: var(--text-muted);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            user-select: none;
-        }
-        .os-workspace-btn.active {
-            background: var(--accent-blue);
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        .os-tray {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .os-tray-item {
-            font-size: 12px;
-            font-family: var(--font-mono);
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 8px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 4px;
-        }
-
-        /* DESKTOP WORKSPACE */
-        .os-workspace {
-            display: flex;
-            padding: 1.25rem;
-            gap: 1.25rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* DESKTOP SHORTCUTS (LEFT COLUMN) */
-        .os-shortcuts {
-            width: 90px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            flex-shrink: 0;
-            padding-top: 6px;
-        }
-        .os-shortcut {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            text-decoration: none;
-            color: #d1d5db;
-            padding: 8px 4px;
-            border-radius: 8px;
-            transition: background 0.15s, transform 0.15s;
             border: 1px solid transparent;
         }
-        .os-shortcut:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.12);
-            transform: translateY(-2px);
+        .ub-pill-green  { background: rgba(38, 162, 105, 0.2); color: #4cd995; border-color: rgba(38, 162, 105, 0.4); }
+        .ub-pill-orange { background: rgba(233, 84, 32, 0.2); color: #ff8555; border-color: rgba(233, 84, 32, 0.4); }
+        .ub-pill-blue   { background: rgba(28, 113, 216, 0.2); color: #62a0ea; border-color: rgba(28, 113, 216, 0.4); }
+        .ub-pill-grey   { background: rgba(255, 255, 255, 0.08); color: #aaaaaa; border-color: rgba(255, 255, 255, 0.1); }
+
+        /* ============================================================== */
+        /* 5. ACTIVITIES OVERLAY (ETKİNLİKLER GENEL BAKIŞ)                */
+        /* ============================================================== */
+        .activities-overlay {
+            display: none;
+            position: fixed;
+            top: 32px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(14, 14, 14, 0.94);
+            backdrop-filter: blur(24px);
+            z-index: 2000;
+            padding: 40px;
+            overflow-y: auto;
+            flex-direction: column;
+            align-items: center;
+        }
+        .activities-overlay.open {
+            display: flex;
+        }
+
+        .activities-search {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 10px 20px;
             color: #ffffff;
+            font-size: 15px;
+            font-family: var(--font-ubuntu);
+            outline: none;
+            margin-bottom: 40px;
+            text-align: center;
         }
-        .os-shortcut.active {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
+        .activities-search:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--ub-orange);
+            box-shadow: 0 0 0 3px rgba(233, 84, 32, 0.3);
         }
-        .os-shortcut-icon {
-            font-size: 26px;
-            margin-bottom: 4px;
-            line-height: 1;
+
+        .activities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            max-width: 900px;
+            width: 100%;
+            gap: 24px;
         }
-        .os-shortcut-label {
-            font-size: 10px;
+        .activity-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            text-decoration: none;
+            transition: transform 0.15s, background 0.15s;
+        }
+        .activity-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--ub-orange);
+        }
+        .activity-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        .activity-name {
+            font-size: 13px;
             font-weight: 600;
-            letter-spacing: -0.01em;
         }
 
-        /* MAIN FLOATING OS WINDOW */
-        .os-window {
-            flex: 1;
-            min-width: 0;
-            background: rgba(17, 20, 28, 0.94);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
-            overflow: hidden;
-        }
-
-        .os-window-titlebar {
-            background: rgba(22, 26, 36, 0.95);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 0.65rem 1.15rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .os-traffic-lights {
-            display: flex;
-            gap: 7px;
-            align-items: center;
-        }
-        .os-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        .os-dot-red    { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
-        .os-dot-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
-        .os-dot-green  { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
-
-        .os-window-title {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .os-window-actions {
-            display: flex;
-            gap: 8px;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-family: var(--font-mono);
-            user-select: none;
-        }
-
-        .os-window-body {
-            padding: 1.5rem;
-        }
-
-        @media (max-width: 900px) {
-            .os-workspace { flex-direction: column; padding: 0.75rem; }
-            .os-shortcuts {
-                width: 100%;
-                flex-direction: row;
-                overflow-x: auto;
-                justify-content: flex-start;
-                padding-top: 0;
-            }
-            .os-shortcut { width: 75px; flex-shrink: 0; }
+        @media (max-width: 800px) {
+            .ubuntu-dock { width: 56px; }
+            .dock-item { width: 42px; height: 42px; }
+            .dock-icon { font-size: 20px; }
+            .ubuntu-stage { padding: 10px; }
+            .ubuntu-headerbar { flex-direction: column; height: auto; padding: 10px; gap: 8px; }
+            .ubuntu-tab-bar { flex-wrap: wrap; justify-content: center; }
         }
     </style>
 </head>
-<body class="<?= $theme === '90s' ? 'theme-90s' : 'theme-modern' ?>">
+<body>
 
-<?php if ($theme === '90s'): ?>
     <!-- ============================================================== -->
-    <!-- 90'S RETRO CYBER-BROWSER SHELL                                 -->
+    <!-- 1. UBUNTU TOP PANEL                                            -->
     <!-- ============================================================== -->
-    <div class="browser-window">
-        <!-- WINDOW TITLE BAR -->
-        <div class="win-titlebar">
-            <div style="display:flex; align-items:center; gap:6px;">
-                <span>🧭</span>
-                <span>Retro Web Navigator - [FPHP HYPER-CACHE '90s - http://www.retro-web.local/~fphp]</span>
-            </div>
-            <div class="win-controls">
-                <div class="win-btn">_</div>
-                <div class="win-btn">口</div>
-                <div class="win-btn">✕</div>
+    <header class="ubuntu-panel">
+        <div class="panel-left">
+            <button class="activities-btn" id="btnActivities" onclick="toggleActivities()">
+                Etkinlikler
+            </button>
+            <div class="panel-app-name">
+                <span>FPHP Denetim Merkezi</span>
             </div>
         </div>
 
-        <!-- WINDOW MENUBAR -->
-        <div class="win-menubar">
-            <span><u>D</u>osya</span>
-            <span><u>D</u>üzen</span>
-            <span><u>G</u>örünüm</span>
-            <span><u>G</u>it</span>
-            <span><u>Y</u>er İmleri</span>
-            <span><u>S</u>eçenekler</span>
-            <span><u>D</u>izin</span>
-            <span><u>P</u>encere</span>
-            <span><u>Y</u>ardım</span>
-        </div>
-
-        <!-- WINDOW TOOLBAR -->
-        <div class="win-toolbar">
-            <div class="win-tool-group">
-                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">⬅ Geri</a>
-                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">➡ İleri</a>
-                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">🏠 Ana Sayfa</a>
-                <a href="javascript:location.reload()" class="win-tool-btn">🔄 Yenile</a>
-                <a href="javascript:window.print()" class="win-tool-btn">🖨️ Yazdır</a>
-                <a href="javascript:void(0)" class="win-tool-btn" onclick="alert('FPHP C-RAM Önbelleği Durdurulamaz!')">🛑 Durdur</a>
-            </div>
-            <div class="win-tool-group">
-                <span style="font-family:'MS Sans Serif', Tahoma; font-size:11px; font-weight:bold;">Görünüm:</span>
-                <a href="?page=<?= $page ?>&theme=90s" class="win-tool-btn" style="background:#000080; color:#ffff00 !important;">📺 90's Retro Web</a>
-                <a href="?page=<?= $page ?>&theme=modern" class="win-tool-btn">🚀 2026 Modern Cyber</a>
+        <div class="panel-center">
+            <div class="panel-clock" id="ubuntuLiveClock" title="Tarih ve Saat">
+                <?= date('d M H:i') ?>
             </div>
         </div>
 
-        <!-- WINDOW URL BAR -->
-        <div class="win-urlbar">
-            <span>Konum (Location):</span>
-            <input type="text" class="win-url-input" value="http://www.retro-web.local/~fphp/speed.htm?fphp_l1=active" readonly>
-            <button class="win-tool-btn" onclick="location.reload()">Neyin Var?</button>
-        </div>
-
-        <!-- 90'S SCROLLING MARQUEE TICKER -->
-        <marquee scrollamount="6" bgcolor="#000080" style="color:#ffff00; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; padding:4px; border:2px inset #ffffff; margin-bottom:4px;">
-            ⚡⚡⚡ DİKKAT CYBER-SÖRFÇÜLER! ⚡ 90'LARIN İLK 0.05µs (MİKRO-SANİYE) SÜPER-ÖNBELLEK MOTORUNA HOŞ GELDİNİZ! ⚡ ÇEVİRMELİ 28.8K MODEMLERİ TARİHE GÖMEN ZEND OPCACHE VE L1 C-RAM TEKNOLOJİSİ! ⚡ EN İYİ 800x600 ÇÖZÜNÜRLÜKTE GÖRÜNTÜLENİR! ⚡⚡⚡
-        </marquee>
-
-        <!-- NOTIFICATION -->
-        <?php if (!empty($notice)): ?>
-            <div class="alert <?= $noticeType ?>" style="margin:8px 8px 0 8px;">
-                <?= htmlspecialchars($notice) ?>
+        <div class="panel-right">
+            <div class="panel-tray-item" title="L1 Paylaşımlı Bellek Motoru">
+                <span class="tray-cram-pill">⚡ C-RAM: 0.05µs</span>
             </div>
-        <?php endif; ?>
-
-        <!-- TABS (RETRO 90'S STYLE) -->
-        <nav class="tab-bar">
-            <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
-                🏠 AnaSayfa.htm
-            </a>
-            <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
-                📊 Telemetri.log
-            </a>
-            <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
-                📁 Dosyalar.dir (<?= count($cacheFiles) ?>)
-            </a>
-            <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
-                🧠 YapayZeka.sys
-            </a>
-            <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
-                ⚡ Benchmark.exe
-            </a>
-        </nav>
-
-        <div class="retro-content-wrap">
-<?php else: ?>
-    <!-- ============================================================== -->
-    <!-- MASAÜSTÜ SİSTEM KABUĞU & GÖREV ÇUBUĞU (DESKTOP ENVIRONMENT)    -->
-    <!-- ============================================================== -->
-    <header class="os-desktop-bar">
-        <div style="display:flex; align-items:center; gap:8px;">
-            <div class="os-app-menu" title="Sistem Kontrol Menüsü">
-                <span>⚡</span>
-                <span>Sistem Menüsü</span>
+            <div class="panel-tray-item" title="Ağ ve İletişim">
+                <span>🛜</span>
             </div>
-            <div class="os-workspaces">
-                <div class="os-workspace-btn active">1</div>
-                <div class="os-workspace-btn">2</div>
-                <div class="os-workspace-btn">3</div>
+            <div class="panel-tray-item" title="Ses ve Bildirimler">
+                <span>🔊</span>
             </div>
-        </div>
-
-        <div class="os-window-title">
-            <span>💻 Masaüstü Konsolu — [ fphp-engine: aktif (0.05µs) ]</span>
-        </div>
-
-        <div class="os-tray">
-            <div class="os-tray-item">
-                <span style="color:#10b981;">●</span>
-                <span>L1 C-RAM: 0.05µs</span>
-            </div>
-            <div class="os-tray-item">
-                <span>🕒</span>
-                <span id="os-live-clock"><?= date('H:i') ?></span>
-            </div>
-            <div class="theme-pill-switch">
-                <a href="?page=<?= $page ?>&theme=90s" class="btn" style="padding:2px 8px; font-size:11px;">📺 90's Retro</a>
-                <a href="?page=<?= $page ?>&theme=modern" class="btn btn-primary" style="padding:2px 8px; font-size:11px;">🖥️ Masaüstü</a>
+            <div class="panel-tray-item" title="Sistem Kontrolü" onclick="toggleActivities()">
+                <span>⏻</span>
             </div>
         </div>
     </header>
 
-    <div class="os-workspace">
-        <!-- SOL MASAÜSTÜ KISAYOLLARI (DESKTOP ICONS) -->
-        <aside class="os-shortcuts">
-            <a href="index.php?page=demo&theme=modern" class="os-shortcut <?= $page === 'demo' ? 'active' : '' ?>">
-                <div class="os-shortcut-icon">🏠</div>
-                <div class="os-shortcut-label">Başlangıç</div>
+    <!-- ============================================================== -->
+    <!-- 2. UBUNTU WORKSPACE & DOCK                                     -->
+    <!-- ============================================================== -->
+    <div class="ubuntu-workspace">
+        <!-- SOL DOCK (UBUNTU LAUNCHER) -->
+        <aside class="ubuntu-dock">
+            <!-- 1. BAŞLANGIÇ (HOME) -->
+            <a href="index.php?page=demo" class="dock-item <?= $page === 'demo' ? 'active' : '' ?>">
+                <div class="dock-icon">🏠</div>
+                <span class="dock-tooltip">Başlangıç & Canlı Hız Testi</span>
             </a>
-            <a href="index.php?page=stats&theme=modern" class="os-shortcut <?= $page === 'stats' ? 'active' : '' ?>">
-                <div class="os-shortcut-icon">📊</div>
-                <div class="os-shortcut-label">Monitör</div>
+
+            <!-- 2. SİSTEM MONİTÖRÜ (STATS) -->
+            <a href="index.php?page=stats" class="dock-item <?= $page === 'stats' ? 'active' : '' ?>">
+                <div class="dock-icon">📊</div>
+                <span class="dock-tooltip">Sistem Monitörü & Telemetri</span>
             </a>
-            <a href="index.php?page=files&theme=modern" class="os-shortcut <?= $page === 'files' ? 'active' : '' ?>">
-                <div class="os-shortcut-icon">📁</div>
-                <div class="os-shortcut-label">Dosyalar</div>
+
+            <!-- 3. NAUTILUS DOSYA GEZGİNİ (FILES) -->
+            <a href="index.php?page=files" class="dock-item <?= $page === 'files' ? 'active' : '' ?>">
+                <div class="dock-icon">📁</div>
+                <span class="dock-tooltip">Nautilus Depo Gezgini (<?= count($cacheFiles) ?>)</span>
             </a>
-            <a href="index.php?page=intelligence&theme=modern" class="os-shortcut <?= $page === 'intelligence' ? 'active' : '' ?>">
-                <div class="os-shortcut-icon">🧠</div>
-                <div class="os-shortcut-label">Zeka (PID)</div>
+
+            <!-- 4. UÇBİRİM & ZEKA (INTELLIGENCE) -->
+            <a href="index.php?page=intelligence" class="dock-item <?= $page === 'intelligence' ? 'active' : '' ?>">
+                <div class="dock-icon">🧠</div>
+                <span class="dock-tooltip">Otonom PID & Reaktif Soyağacı</span>
             </a>
-            <a href="index.php?page=benchmark&theme=modern" class="os-shortcut <?= $page === 'benchmark' ? 'active' : '' ?>">
-                <div class="os-shortcut-icon">⚡</div>
-                <div class="os-shortcut-label">Kıyaslama</div>
+
+            <!-- 5. HIZ KIYASLAMA (BENCHMARK) -->
+            <a href="index.php?page=benchmark" class="dock-item <?= $page === 'benchmark' ? 'active' : '' ?>">
+                <div class="dock-icon">⚡</div>
+                <span class="dock-tooltip">Performans Kıyaslama Laboratuvarı</span>
             </a>
+
+            <div class="dock-separator"></div>
+
+            <!-- HIZLI ÖNBELLEK TEMİZLEME BUTONU -->
+            <form method="POST" action="index.php?page=<?= htmlspecialchars($page) ?>" onsubmit="return confirm('Tüm katmanlardaki önbelleği temizlemek istiyor musunuz?');" style="margin:0;">
+                <input type="hidden" name="action" value="clear_all">
+                <button type="submit" class="dock-item" style="border:none;" title="Tüm Katmanları Boşalt">
+                    <div class="dock-icon">🗑️</div>
+                    <span class="dock-tooltip">Tüm Önbelleği Boşalt</span>
+                </button>
+            </form>
+
+            <!-- HIZLI ÇÖP TOPLAYICI (GC) -->
+            <form method="POST" action="index.php?page=<?= htmlspecialchars($page) ?>" style="margin:0;">
+                <input type="hidden" name="action" value="prune_expired">
+                <button type="submit" class="dock-item" style="border:none;" title="Bayat Dosyaları Temizle">
+                    <div class="dock-icon">🧹</div>
+                    <span class="dock-tooltip">Bayat Dosyaları Temizle (GC)</span>
+                </button>
+            </form>
+
+            <div class="dock-spacer"></div>
+
+            <!-- UYGULAMALAR MENÜSÜ (9-DOT GRID) -->
+            <div class="dock-item" onclick="toggleActivities()" title="Tüm Uygulamaları Göster">
+                <div class="dock-icon">⋮⋮⋮</div>
+                <span class="dock-tooltip">Tüm Uygulamaları Göster</span>
+            </div>
         </aside>
 
-        <!-- MERKEZİ PENCERE (FLOATING OS WINDOW) -->
-        <main class="os-window">
-            <div class="os-window-titlebar">
-                <div class="os-traffic-lights">
-                    <span class="os-dot os-dot-red" title="Kapat"></span>
-                    <span class="os-dot os-dot-yellow" title="Küçült"></span>
-                    <span class="os-dot os-dot-green" title="Tam Ekran"></span>
-                </div>
-                <div class="os-window-title">
-                    <span>🖥️ core@system: ~/fphp-engine/<?= htmlspecialchars($page) ?>.sh</span>
-                </div>
-                <div class="os-window-actions">
-                    <span>—</span>
-                    <span>▢</span>
-                    <span>✕</span>
-                </div>
-            </div>
-
-            <!-- WINDOW SUB TABS -->
-            <nav class="tab-bar" style="margin-bottom:0; padding: 0.5rem 1rem 0 1rem; background: var(--surface-elevated);">
-                <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
-                    🏠 demo.sh
-                </a>
-                <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
-                    📊 system_monitor.log
-                </a>
-                <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
-                    📁 storage/ (<?= count($cacheFiles) ?>)
-                </a>
-                <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
-                    🧠 pid_core.sys
-                </a>
-                <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
-                    ⚡ benchmark.bin
-                </a>
-            </nav>
-
-            <div class="os-window-body">
-                <!-- NOTIFICATION -->
-                <?php if (!empty($notice)): ?>
-                    <div class="alert <?= $noticeType ?>">
-                        <?= htmlspecialchars($notice) ?>
-                    </div>
-                <?php endif; ?>
-<?php endif; ?>
-
-        <?php if ($page === 'demo'): ?>
-            <!-- ============================================================== -->
-            <!-- SAYFA 1: HIZLI BAŞLANGIÇ VE CANLI TEST                         -->
-            <!-- ============================================================== -->
-            <?php if ($theme === '90s'): ?>
-                <div style="text-align:center; margin-bottom:1rem;">
-                    <div class="hazard-stripe"></div>
-                    <h1 style="font-family:'Impact', 'Arial Black', sans-serif; font-size: 2.3rem; color: #000080; text-shadow: 2px 2px #ffff00, 3px 3px #ff0000; margin: 0.5rem 0; letter-spacing:1px;">
-                        ★★★ FPHP HYPER-CACHE '90s ★★★
-                    </h1>
-                    <p style="font-family:'Comic Sans MS', cursive, sans-serif; font-size: 14px; color: #800000; margin-bottom:6px;">
-                        <b>"DÜNYANIN EN HIZLI 90'LAR KİŞİSEL ANA SAYFASI & 0.05µs C-RAM HIZLANDIRICISI"</b>
-                    </p>
-                    <div style="margin: 6px 0;">
-                        <span class="blink" style="color:#cc0000; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; background:#ffff00; padding:2px 8px; border:1px solid #cc0000;">
-                            [ 🔥 DİKKAT: 28.8K ÇEVİRMELİ MODEMLER İÇİN L1 C-RAM BYPASS TEKNOLOJİSİ DEVREDE! 🔥 ]
+        <!-- ============================================================== -->
+        <!-- 3. UBUNTU YARU WINDOW SAHNESİ                                  -->
+        <!-- ============================================================== -->
+        <main class="ubuntu-stage">
+            <div class="ubuntu-window" id="mainUbuntuWindow">
+                <!-- YARU HEADERBAR -->
+                <div class="ubuntu-headerbar">
+                    <div class="headerbar-title-group">
+                        <span class="headerbar-app-icon">
+                            <?= match($page) {
+                                'demo' => '🏠',
+                                'stats' => '📊',
+                                'files' => '📁',
+                                'intelligence' => '🧠',
+                                'benchmark' => '⚡',
+                                default => '💻'
+                            } ?>
                         </span>
-                    </div>
-                    <div style="margin: 8px 0;">
-                        <div class="retro-counter">
-                            SAYFA ZİYARET SAYACI (90'LARDAN BERİ): <span>0</span><span>0</span><span>4</span><span>2</span><span>8</span><span>9</span>
-                        </div>
-                    </div>
-                    <div class="rainbow-hr"></div>
-                </div>
-
-                <!-- 90'S DIALUP MODEM VS FPHP CALLOUT -->
-                <table border="2" cellpadding="8" cellspacing="0" width="100%" bgcolor="#ffffcc" style="border: 2px inset #ffffff; margin-bottom: 1.25rem; font-family: 'Times New Roman', serif;">
-                    <tr>
-                        <td width="55" align="center" valign="middle" bgcolor="#ffcc00" style="font-size: 32px;">📟</td>
-                        <td>
-                            <b style="color: #000080; font-family: 'MS Sans Serif', Tahoma; font-size:13px;">SAYIN CYBER-YOLCU, HOŞ GELDİNİZ:</b><br>
-                            Şu anda 90'lar ruhuyla tasarlanmış en hızlı World Wide Web sayfasındasınız! 
-                            Normalde 28.8k veya 33.6k çevirmeli modemle bir sayfanın yüklenmesi <strong>45 saniye (45.000.000 mikro-saniye)</strong> sürer ve telefon hattını meşgul eder. 
-                            Ancak FPHP motorunun <strong>L1 Shared Memory ve OPcache Transmutasyonu</strong> sayesinde bu sayfa size 
-                            <strong style="color: #008000;">0.05 milisaniyede (50 mikro-saniye)</strong> ulaşmaktadır! 
-                            <span style="color: #cc0000; font-weight: bold;">(Eski çevirmeli ağ sağlayıcılarından tam 900.000 kat daha hızlı!)</span>
-                        </td>
-                    </tr>
-                </table>
-            <?php else: ?>
-                <div class="explainer">
-                    <div style="font-size: 1.5rem; line-height: 1;">💡</div>
-                    <div>
-                        <div class="explainer-title">FPHP Cache Nedir ve Ne Yapar?</div>
-                        <div class="explainer-text">
-                            Normalde bir PHP sayfası her açıldığında yüzlerce dosya yüklenir, veritabanına bağlanılır ve sunucu yorulur. 
-                            <strong>FPHP Cache</strong>, sayfaları bellekte (C-RAM / OPcache) hazır tutar. İstek geldiğinde veritabanına hiç dokunmadan 
-                            sayfayı <strong>0.1 milisaniyede</strong> doğrudan sunar. Siteniz 10.000 kişi aynı anda gelse bile kilitlenmez.
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <!-- CANLI HIZ TESTİ -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">⚡ Canlı Tepki Hızı Testi</div>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="testLiveFetch(false)">
-                            <?= $theme === '90s' ? '⚡ Işık Hızında İndir (0.05µs HIT)' : '⚡ Önbellekli Çağır (HIT Testi)' ?>
-                        </button>
-                        <button class="btn btn-danger" onclick="testLiveFetch(true)">
-                            <?= $theme === '90s' ? '🐌 28.8k Modem Simülasyonu (MISS)' : '⚠️ Önbelleksiz Çağır (Yavaş MySQL Testi)' ?>
-                        </button>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                        Aşağıdaki butonlara bastığınızda tarayıcınız sunucuya anlık istek gönderir ve yanıt süresini canlı ölçer:
-                    </p>
-
-                    <div class="kpi-row">
-                        <div class="kpi-card">
-                            <div class="kpi-label">Önbellek Durumu</div>
-                            <div class="kpi-val" id="kpi-status" style="color:var(--accent-green);">HIT</div>
-                            <div class="kpi-sub" id="kpi-driver">C-RAM OPcache Bytecode</div>
-                        </div>
-
-                        <div class="kpi-card">
-                            <div class="kpi-label">Sunucu Yanıt Süresi</div>
-                            <div class="kpi-val" id="kpi-time" style="color:var(--accent-cyan);">0.15 ms</div>
-                            <div class="kpi-sub">150 mikro-saniye (µs)</div>
-                        </div>
-
-                        <div class="kpi-card">
-                            <div class="kpi-label">Veritabanı Yükü</div>
-                            <div class="kpi-val" id="kpi-db" style="color:var(--accent-green);">%0 Yük</div>
-                            <div class="kpi-sub">0 DB sorgusu, sıfır CPU kaybı</div>
-                        </div>
-
-                        <div class="kpi-card">
-                            <div class="kpi-label">Hızlanma Oranı</div>
-                            <div class="kpi-val" id="kpi-speedup" style="color:var(--accent-blue);">~80x</div>
-                            <div class="kpi-sub">Normal PHP'ye kıyasla</div>
+                        <div>
+                            <span class="headerbar-title">FPHP Cache — </span>
+                            <span class="headerbar-subtitle"><?= htmlspecialchars($page) ?>.sh</span>
                         </div>
                     </div>
 
-                    <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:0.35rem; text-transform:uppercase;">
-                        Sunucunun Döndürdüğü Ham HTTP Başlığı:
-                    </div>
-                    <div class="code-snippet" id="kpi-headers">X-FPHP-Cache: HIT (OPCACHE_BYTECODE)&#10;X-FPHP-Time: 0.15ms (150µs)&#10;X-FPHP-Speedup: ~80x</div>
-                </div>
-            </div>
+                    <!-- GNOME HEADERBAR TABS -->
+                    <nav class="ubuntu-tab-bar">
+                        <a href="index.php?page=demo" class="ubuntu-tab <?= $page === 'demo' ? 'active' : '' ?>">
+                            🏠 Başlangıç
+                        </a>
+                        <a href="index.php?page=stats" class="ubuntu-tab <?= $page === 'stats' ? 'active' : '' ?>">
+                            📊 Monitör
+                        </a>
+                        <a href="index.php?page=files" class="ubuntu-tab <?= $page === 'files' ? 'active' : '' ?>">
+                            📁 Dosyalar (<?= count($cacheFiles) ?>)
+                        </a>
+                        <a href="index.php?page=intelligence" class="ubuntu-tab <?= $page === 'intelligence' ? 'active' : '' ?>">
+                            🧠 Zeka (PID)
+                        </a>
+                        <a href="index.php?page=benchmark" class="ubuntu-tab <?= $page === 'benchmark' ? 'active' : '' ?>">
+                            ⚡ Kıyaslama
+                        </a>
+                    </nav>
 
-            <!-- DİNAMİK PARÇA (HOLE PUNCHING) CANLI KANIT -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">🧩 Dinamik Parça Mimarisi (Hole Punching) Nedir?</div>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                        <em>"Sayfayı önbelleğe alırsam kullanıcının sepeti veya canlı saat gibi kısımlar donup kalır mı?"</em> sorusunun çözümü:
-                        Sayfanın %99'u önbellekten <strong>1 mikro-saniyede</strong> gelirken, sadece dinamik tanımlanan parçalar anlık hesaplanır:
-                    </p>
-                    <div class="grid-2">
-                        <div class="metric-cell" style="background:var(--bg); border:1px solid var(--border); padding:1rem; border-radius:4px;">
-                            <div class="kpi-label">Canlı Dinamik Saat Yuvası</div>
-                            <div class="mono" style="font-size:1.2rem; color:var(--accent-amber); font-weight:700;"><?= $dynamicClock ?></div>
-                            <div class="kpi-sub">Sayfa önbellektedir; saat her F5 yenilemesinde akar.</div>
-                        </div>
-                        <div class="metric-cell" style="background:var(--bg); border:1px solid var(--border); padding:1rem; border-radius:4px;">
-                            <div class="kpi-label">Kullanıcıya Özel Slot</div>
-                            <div class="mono" style="font-size:1.2rem; color:var(--accent-cyan); font-weight:700;"><?= $dynamicVisitor ?></div>
-                            <div class="kpi-sub">Her kullanıcıya özel mikrosaniyede hesaplanan slot.</div>
-                        </div>
+                    <!-- PENCERE KONTROLLERİ (MIN, MAX, CLOSE) -->
+                    <div class="ubuntu-window-controls">
+                        <button class="win-control-btn" onclick="minimizeWindow()" title="Küçült">—</button>
+                        <button class="win-control-btn" onclick="toggleMaximizeWindow()" title="Büyüt / Küçült">▢</button>
+                        <button class="win-control-btn win-control-close" onclick="closeWindowAlert()" title="Kapat">✕</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- PROJEYE NASIL EKLENİR -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">🚀 Kendi Sitenize 2 Adımda Nasıl Kurulur?</div>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:0.75rem;">
-                        Kendi web uygulamanızın veya framework'ünüzün (WordPress, Laravel veya saf PHP) <code>index.php</code> dosyasının en tepesine ekleyin:
-                    </p>
-                    <div class="code-snippet">&lt;?php
+                <!-- WINDOW BODY -->
+                <div class="ubuntu-window-body">
+                    <!-- BİLDİRİM KUTUSU -->
+                    <?php if (!empty($notice)): ?>
+                        <div class="ub-alert <?= $noticeType ?>">
+                            <span><?= $noticeType === 'success' ? '✅' : '⚠️' ?></span>
+                            <div><?= htmlspecialchars($notice) ?></div>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- ============================================================== -->
+                    <!-- SAYFA 1: DEMO / HIZLI BAŞLANGIÇ                               -->
+                    <!-- ============================================================== -->
+                    <?php if ($page === 'demo'): ?>
+                        <div class="ub-banner">
+                            <div class="ub-banner-icon">🚀</div>
+                            <div>
+                                <div class="ub-banner-title">Ubuntu Üzerinde Süper-Önbellek (FPHP Hyper-Cache)</div>
+                                <div class="ub-banner-desc">
+                                    FPHP Cache, web sayfalarınızı C-RAM (APCu L1) ve Kernel Paylaşımlı Belleğinde (OPcache L2) tutar. 
+                                    İstek geldiğinde PHP derleyicisine ve MySQL veritabanına dokunmadan sayfayı <strong>0.05 - 0.15 milisaniyede</strong> doğrudan sunar.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CANLI HIZ TESTİ PANELİ -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">⚡ Canlı Yanıt Hızı Test İstasyonu</div>
+                                <div style="display:flex; gap:8px;">
+                                    <button class="btn-ubuntu" onclick="testLiveFetch(false)">
+                                        ⚡ Önbellekli Çağır (HIT Testi)
+                                    </button>
+                                    <button class="btn-ubuntu-secondary" onclick="testLiveFetch(true)">
+                                        ⚠️ Önbelleksiz Çağır (MISS Testi)
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:14px;">
+                                    Aşağıdaki butonlara bastığınızda tarayıcınız sunucuya anlık istek gönderir ve HTTP başlıklarıyla yanıt süresini canlı ölçer:
+                                </p>
+
+                                <div class="ub-kpi-grid">
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Önbellek Durumu</div>
+                                        <div class="ub-kpi-value" id="kpi-status" style="color:var(--ub-success);">HIT</div>
+                                        <div class="ub-kpi-sub" id="kpi-driver">C-RAM OPcache Bytecode</div>
+                                    </div>
+
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Sunucu Yanıt Süresi</div>
+                                        <div class="ub-kpi-value" id="kpi-time" style="color:#62a0ea;">0.15 ms</div>
+                                        <div class="ub-kpi-sub">150 mikro-saniye (µs)</div>
+                                    </div>
+
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Veritabanı Yükü</div>
+                                        <div class="ub-kpi-value" id="kpi-db" style="color:var(--ub-success);">%0 Yük</div>
+                                        <div class="ub-kpi-sub">0 DB sorgusu, sıfır CPU kaybı</div>
+                                    </div>
+
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Hızlanma Oranı</div>
+                                        <div class="ub-kpi-value" id="kpi-speedup" style="color:var(--ub-orange);">~80x</div>
+                                        <div class="ub-kpi-sub">Normal PHP'ye kıyasla</div>
+                                    </div>
+                                </div>
+
+                                <div style="font-size:11px; font-weight:700; color:var(--ub-text-muted); margin-bottom:6px; text-transform:uppercase;">
+                                    Sunucudan Gelen Ham HTTP Başlıkları (Response Headers):
+                                </div>
+                                <div class="ub-terminal" id="kpi-headers">X-FPHP-Cache: HIT (OPCACHE_BYTECODE)&#10;X-FPHP-Time: 0.15ms (150µs)&#10;X-FPHP-Speedup: ~80x&#10;ETag: W/"fphp-shm-01"</div>
+                            </div>
+                        </div>
+
+                        <!-- DİNAMİK PARÇA (HOLE PUNCHING) -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">🧩 Dinamik Ada Mimarisi (Hole Punching)</div>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:14px;">
+                                    Sayfanın %99'u önbellekten <strong>1 mikro-saniyede</strong> servis edilirken, kullanıcı oturumu veya anlık saat gibi dinamik yuvalar anında yerine yerleştirilir:
+                                </p>
+                                <div class="grid-2">
+                                    <div style="background:#1e1e1e; border:1px solid var(--ub-card-border); padding:16px; border-radius:8px;">
+                                        <div class="ub-kpi-label">Canlı Dinamik Saat Yuvası</div>
+                                        <div style="font-family:var(--font-mono); font-size:1.3rem; color:var(--ub-warning); font-weight:700;"><?= $dynamicClock ?></div>
+                                        <div class="ub-kpi-sub">Sayfa önbellektedir; saat her F5 yenilemesinde akar.</div>
+                                    </div>
+                                    <div style="background:#1e1e1e; border:1px solid var(--ub-card-border); padding:16px; border-radius:8px;">
+                                        <div class="ub-kpi-label">Kullanıcıya Özel Slot</div>
+                                        <div style="font-family:var(--font-mono); font-size:1.3rem; color:var(--ub-orange); font-weight:700;"><?= $dynamicVisitor ?></div>
+                                        <div class="ub-kpi-sub">Her kullanıcıya özel milisaniyede hesaplanan slot.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UBUNTU SİSTEMİNE ENTEGRASYON KODU -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">🛠️ Kendi Web Projenize 2 Satırda Entegrasyon</div>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:10px;">
+                                    Framework veya saf PHP projenizin <code>index.php</code> dosyasının en tepesine ekleyin:
+                                </p>
+                                <div class="ub-terminal">&lt;?php
 // 1. FPHP Cache autoloader'ını dahil edin:
 require_once __DIR__ . '/fphp-bootstrap.php';
 
@@ -1439,375 +1197,473 @@ require_once __DIR__ . '/fphp-bootstrap.php';
 \Fphp\FphpCache::boot();
 
 // ... Sitenizin geri kalan tüm kodları burada normal çalışmaya devam eder.</div>
-                </div>
-            </div>
-
-        <?php elseif ($page === 'stats'): ?>
-            <!-- ============================================================== -->
-            <!-- SAYFA 2: TELEMETRİ VE İSTATİSTİKLER                            -->
-            <!-- ============================================================== -->
-            <div class="explainer">
-                <div style="font-size: 1.5rem; line-height: 1;">📊</div>
-                <div>
-                    <div class="explainer-title">Canlı Sistem Durumu ve Telemetri</div>
-                    <div class="explainer-text">
-                        Sunucunuzun anlık önbellek performansını, toplam kaç isteğin önbellekten karşılandığını ve 
-                        kurtarılan CPU süresini buradan görebilir, tek tıkla önbelleği boşaltabilirsiniz.
-                    </div>
-                </div>
-            </div>
-
-            <div class="kpi-row">
-                <div class="kpi-card">
-                    <div class="kpi-label">Önbellek İsabet Oranı</div>
-                    <div class="kpi-val" style="color:<?= $hitRatio >= 80 ? 'var(--accent-green)' : 'var(--text-primary)' ?>;"><?= $hitRatio ?>%</div>
-                    <div class="kpi-sub"><?= number_format($hits) ?> HIT / <?= number_format($totalRequests) ?> İstek</div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-label">Kurtarılan CPU Süresi</div>
-                    <div class="kpi-val" style="color:var(--accent-blue);"><?= round($savedSec, 2) ?>s</div>
-                    <div class="kpi-sub">Veritabanına atılmayan yük kazancı</div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-label">Bellek Yürütme Hızı</div>
-                    <div class="kpi-val" style="color:var(--accent-cyan);">0.8 - 1.5 µs</div>
-                    <div class="kpi-sub">C-RAM seviyesinde donanım hızında</div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-label">Toplam Önbellek Dosyası</div>
-                    <div class="kpi-val"><?= count($cacheFiles) ?> Adet</div>
-                    <div class="kpi-sub">Disk ve OPcache üzerinde aktif</div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title">⚡ Aktif Depolama Katmanları</div>
-                    </div>
-                    <div class="panel-body" style="padding:0;">
-                        <table class="table">
-                            <thead>
-                                <tr><th>Katman</th><th>Teknoloji</th><th>Gecikme</th><th>Durum</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>L1 Shared Memory</strong></td>
-                                    <td>APCu C-RAM Fast-Path</td>
-                                    <td class="mono">0.05 - 0.2 µs</td>
-                                    <td><span class="pill <?= function_exists('apcu_fetch') ? 'pill-green' : 'pill-gray' ?>"><?= function_exists('apcu_fetch') ? 'AKTİF' : 'DEVRE DIŞI' ?></span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>L2 Bytecode Store</strong></td>
-                                    <td>OPcache C-RAM Transmutasyon</td>
-                                    <td class="mono">0.8 - 1.5 µs</td>
-                                    <td><span class="pill pill-green">AKTİF</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>L3 Disk Stream</strong></td>
-                                    <td>NVMe Kernel Zero-Copy</td>
-                                    <td class="mono">25 - 45 µs</td>
-                                    <td><span class="pill pill-green">AKTİF</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>L4 Remote Store</strong></td>
-                                    <td>Redis Kümesi / Dağıtık Ağ</td>
-                                    <td class="mono">500 - 1500 µs</td>
-                                    <td><span class="pill pill-gray">İSTEĞE BAĞLI</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="panel">
-                    <div class="panel-header">
-                        <div class="panel-title">🛠️ Önbellek Yönetim Eylemleri</div>
-                    </div>
-                    <div class="panel-body">
-                        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                            Önbellekte biriken dosyaları temizlemek veya sayaçları sıfırlamak için aşağıdaki butonları kullanın:
-                        </p>
-                        <div class="btn-group">
-                            <form method="POST" onsubmit="return confirm('Tüm katmanlardaki önbelleği temizlemek istediğinize emin misiniz?');">
-                                <input type="hidden" name="action" value="clear_all">
-                                <button type="submit" class="btn btn-danger">🗑️ Tüm Önbelleği Boşalt</button>
-                            </form>
-
-                            <form method="POST">
-                                <input type="hidden" name="action" value="prune_expired">
-                                <button type="submit" class="btn">🧹 Bayat Dosyaları Temizle (GC)</button>
-                            </form>
-
-                            <form method="POST">
-                                <input type="hidden" name="action" value="generate_preload">
-                                <button type="submit" class="btn">📄 Preload.php Derle</button>
-                            </form>
-
-                            <form method="POST">
-                                <input type="hidden" name="action" value="reset_stats">
-                                <button type="submit" class="btn">🔄 Sayaçları Sıfırla</button>
-                            </form>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-        <?php elseif ($page === 'files'): ?>
-            <!-- ============================================================== -->
-            <!-- SAYFA 3: ÖNBELLEK DOSYALARI GEZGİNİ                            -->
-            <!-- ============================================================== -->
-            <div class="explainer">
-                <div style="font-size: 1.5rem; line-height: 1;">📁</div>
-                <div>
-                    <div class="explainer-title">Önbellek Dosya Gezgini</div>
-                    <div class="explainer-text">
-                        Sunucunuzun diskinde ve OPcache belleğinde şu anda üretilmiş olan tüm hazır sayfaları buradan görebilir,
-                        tek tek silebilir veya boyutlarını inceleyebilirsiniz.
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Aktif Önbellek Dosyaları (<?= count($cacheFiles) ?> Adet)</div>
-                </div>
-                <div class="panel-body" style="padding:0;">
-                    <?php if (empty($cacheFiles)): ?>
-                        <div style="padding:2rem; text-align:center; color:var(--text-muted);">
-                            Şu anda önbellekte dosya bulunmuyor. Ana sayfayı ziyaret ettiğinizde otomatik oluşacaktır.
+                    <!-- ============================================================== -->
+                    <!-- SAYFA 2: SİSTEM MONİTÖRÜ & TELEMETRİ                           -->
+                    <!-- ============================================================== -->
+                    <?php elseif ($page === 'stats'): ?>
+                        <div class="ub-banner">
+                            <div class="ub-banner-icon">📊</div>
+                            <div>
+                                <div class="ub-banner-title">Sistem Kaynakları ve Canlı Telemetri</div>
+                                <div class="ub-banner-desc">
+                                    Sunucunuzun önbellek isabet oranlarını, kurtarılan CPU çalışma saatini ve donanım katmanlarını buradan canlı takip edebilirsiniz.
+                                </div>
+                            </div>
                         </div>
-                    <?php else: ?>
-                        <table class="table">
-                            <thead>
-                                <tr><th>Dosya Adı</th><th>Tipi</th><th>Boyut</th><th>Tarih</th><th style="text-align:right;">İşlem</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($cacheFiles as $cf): ?>
-                                    <tr>
-                                        <td class="mono"><?= htmlspecialchars($cf['name']) ?></td>
-                                        <td><span class="pill pill-blue"><?= $cf['type'] ?></span></td>
-                                        <td class="mono"><?= $cf['size'] ?></td>
-                                        <td class="mono" style="color:var(--text-muted);"><?= $cf['mtime'] ?></td>
-                                        <td style="text-align:right;">
-                                            <form method="POST" style="display:inline;" onsubmit="return confirm('Bu dosyayı silmek istiyor musunuz?');">
-                                                <input type="hidden" name="action" value="delete_file">
-                                                <input type="hidden" name="file_path" value="<?= htmlspecialchars($cf['path']) ?>">
-                                                <button type="submit" class="btn btn-danger" style="padding:2px 6px; font-size:11px;">Sil</button>
+
+                        <div class="ub-kpi-grid">
+                            <div class="ub-kpi-card">
+                                <div class="ub-kpi-label">Önbellek İsabet Oranı</div>
+                                <div class="ub-kpi-value" style="color:<?= $hitRatio >= 80 ? 'var(--ub-success)' : 'var(--ub-orange)' ?>;"><?= $hitRatio ?>%</div>
+                                <div class="ub-kpi-sub"><?= number_format($hits) ?> HIT / <?= number_format($totalRequests) ?> İstek</div>
+                            </div>
+
+                            <div class="ub-kpi-card">
+                                <div class="ub-kpi-label">Kurtarılan CPU Süresi</div>
+                                <div class="ub-kpi-value" style="color:var(--ub-info);"><?= round($savedSec, 2) ?>s</div>
+                                <div class="ub-kpi-sub">Veritabanına atılmayan yük kazancı</div>
+                            </div>
+
+                            <div class="ub-kpi-card">
+                                <div class="ub-kpi-label">L1 Donanım Hızı</div>
+                                <div class="ub-kpi-value" style="color:var(--ub-success);">0.05 - 0.2 µs</div>
+                                <div class="ub-kpi-sub">APCu C-RAM Paylaşımlı Bellek</div>
+                            </div>
+
+                            <div class="ub-kpi-card">
+                                <div class="ub-kpi-label">Aktif Önbellek Dosyası</div>
+                                <div class="ub-kpi-value"><?= count($cacheFiles) ?> Adet</div>
+                                <div class="ub-kpi-sub">Disk ve OPcache üzerinde hazır</div>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <!-- DEPOLAMA KATMANLARI -->
+                            <div class="ub-panel">
+                                <div class="ub-panel-header">
+                                    <div class="ub-panel-title">⚡ Aktif Depolama Katmanları</div>
+                                </div>
+                                <div class="ub-panel-body" style="padding:0;">
+                                    <table class="ub-table">
+                                        <thead>
+                                            <tr><th>Katman</th><th>Teknoloji</th><th>Gecikme</th><th>Durum</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>L1 Shared Memory</strong></td>
+                                                <td>APCu C-RAM Fast-Path</td>
+                                                <td style="font-family:var(--font-mono);">0.05 - 0.2 µs</td>
+                                                <td><span class="ub-pill <?= function_exists('apcu_fetch') ? 'ub-pill-green' : 'ub-pill-grey' ?>"><?= function_exists('apcu_fetch') ? 'AKTİF' : 'DEVRE DIŞI' ?></span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>L2 Bytecode Store</strong></td>
+                                                <td>OPcache C-RAM Transmutasyon</td>
+                                                <td style="font-family:var(--font-mono);">0.8 - 1.5 µs</td>
+                                                <td><span class="ub-pill ub-pill-green">AKTİF</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>L3 Disk Stream</strong></td>
+                                                <td>NVMe Kernel Zero-Copy</td>
+                                                <td style="font-family:var(--font-mono);">25 - 45 µs</td>
+                                                <td><span class="ub-pill ub-pill-green">AKTİF</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>L4 Remote Store</strong></td>
+                                                <td>Redis Kümesi / Dağıtık Ağ</td>
+                                                <td style="font-family:var(--font-mono);">500 - 1500 µs</td>
+                                                <td><span class="ub-pill ub-pill-grey">İSTEĞE BAĞLI</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- YÖNETİM EYLEMLERİ -->
+                            <div class="ub-panel">
+                                <div class="ub-panel-header">
+                                    <div class="ub-panel-title">🛠️ Önbellek Yönetim Eylemleri</div>
+                                </div>
+                                <div class="ub-panel-body">
+                                    <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:14px;">
+                                        Sistem önbelleğini temizlemek veya sayaçları sıfırlamak için eylemleri çalıştırın:
+                                    </p>
+                                    <div style="display:flex; flex-direction:column; gap:10px;">
+                                        <form method="POST" action="index.php?page=stats" onsubmit="return confirm('Tüm katmanlardaki önbelleği temizlemek istiyor musunuz?');">
+                                            <input type="hidden" name="action" value="clear_all">
+                                            <button type="submit" class="btn-ubuntu-danger" style="width:100%; justify-content:center;">
+                                                🗑️ Tüm Önbelleği Boşalt (Flush All)
+                                            </button>
+                                        </form>
+
+                                        <div style="display:flex; gap:10px;">
+                                            <form method="POST" action="index.php?page=stats" style="flex:1;">
+                                                <input type="hidden" name="action" value="prune_expired">
+                                                <button type="submit" class="btn-ubuntu-secondary" style="width:100%; justify-content:center;">
+                                                    🧹 Bayat Dosyaları Temizle
+                                                </button>
                                             </form>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php endif; ?>
-                </div>
-            </div>
 
-        <?php elseif ($page === 'intelligence'): ?>
-            <!-- ============================================================== -->
-            <!-- SAYFA 4: AKILLI ZEKA MOTORLARI (PID & DAG)                     -->
-            <!-- ============================================================== -->
-            <div class="explainer">
-                <div style="font-size: 1.5rem; line-height: 1;">🧠</div>
-                <div>
-                    <div class="explainer-title">Gelişmiş Zeka & Otonom Sistemler Nedir?</div>
-                    <div class="explainer-text">
-                        Geleneksel önbellekler kördür; "1 saat önbellekte dursun" diye tahmin yapılır. 
-                        <strong>FPHP</strong> ise veritabanınızdaki değişimleri takip eder (Soyağacı), aşırı trafik geldiğinde veritabanı çökmesin diye kendini otomatik korumaya alır (PID Kontrolörü) ve kullanıcının nereye tıklayacağını önceden tahmin eder (Markov).
-                    </div>
-                </div>
-            </div>
+                                            <form method="POST" action="index.php?page=stats" style="flex:1;">
+                                                <input type="hidden" name="action" value="generate_preload">
+                                                <button type="submit" class="btn-ubuntu-secondary" style="width:100%; justify-content:center;">
+                                                    📄 Preload Derle
+                                                </button>
+                                            </form>
+                                        </div>
 
-            <!-- 1. PID SİBERNETİK KORUMA -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">🎛️ 1. Akıllı Yük ve Bellek Koruyucusu (PID Controller)</div>
-                    <span class="pill pill-green">OTONOM AKTİF</span>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                        <strong>Ne İşe Yarar?</strong> Bir anda 50.000 kişi sitenize girdiğinde normal sunucuların veritabanı kilitlenir. 
-                        Bu PID algoritması, sistem yükünü hissedip önbellek koruma pencerelerini (SWR) otomatik uzatır; tehlike geçince normale döner.
-                    </p>
-                    <div class="kpi-row">
-                        <div class="kpi-card">
-                            <div class="kpi-label">Hedef Bellek Sınırı</div>
-                            <div class="kpi-val"><?= round(($pidData['setpoint'] ?? 0.70) * 100) ?>%</div>
-                            <div class="kpi-sub">Sistemin güvende tuttuğu RAM oranı</div>
+                                        <form method="POST" action="index.php?page=stats">
+                                            <input type="hidden" name="action" value="reset_stats">
+                                            <button type="submit" class="btn-ubuntu-secondary" style="width:100%; justify-content:center;">
+                                                🔄 Performans Sayaçlarını Sıfırla
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Anlık RAM Tüketimi</div>
-                            <div class="kpi-val" style="color:var(--accent-green);"><?= round(($pidData['memory_ratio'] ?? 0) * 100, 1) ?>%</div>
-                            <div class="kpi-sub"><?= $pidData['memory_used_mb'] ?? 2 ?> MB / <?= $pidData['memory_limit_mb'] ?? 128 ?> MB</div>
+
+                    <!-- ============================================================== -->
+                    <!-- SAYFA 3: NAUTILUS ÖNBELLEK DOSYA GEZGİNİ                       -->
+                    <!-- ============================================================== -->
+                    <?php elseif ($page === 'files'): ?>
+                        <div class="ub-banner">
+                            <div class="ub-banner-icon">📁</div>
+                            <div>
+                                <div class="ub-banner-title">Nautilus Önbellek Depo Gezgini</div>
+                                <div class="ub-banner-desc">
+                                    Sunucu diskinde ve OPcache C-RAM deposunda hazır tutulan tüm önbellek sayfalarını listeler. 
+                                    Buradan tek tek dosyaları silebilir veya boyutlarını inceleyebilirsiniz.
+                                </div>
+                            </div>
                         </div>
-                        <div class="kpi-card">
-                            <div class="kpi-label">Dinamik SWR Koruma Süresi</div>
-                            <div class="kpi-val" style="color:var(--accent-amber);"><?= $swrGrace ?> saniye</div>
-                            <div class="kpi-sub">Trafik patlamasında otomatik esner</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- 2. REAKTİF VERİ SOYAĞACI (DAG) -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">🧬 2. Reaktif Veri Soyağacı (Kendi Kendini Silen Akıllı Cache)</div>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                        <strong>Ne İşe Yarar?</strong> Artık süre tahmini (TTL) yapmanıza gerek yok. Veritabanındaki bir ürün veya sipariş değiştiğinde, 
-                        o sayfaya bağlı tüm önbellek anında buharlaşır; değişmeyen sayfalar ise sonsuza kadar taze kalır.
-                    </p>
-                    <div style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:1rem; margin-bottom:1rem;">
-                        <div style="font-weight:700; font-size:13px; margin-bottom:0.5rem;">Canlı Mutasyon Testi Yapın:</div>
-                        <form method="POST" style="display:flex; gap:0.5rem; max-width:550px;">
-                            <input type="hidden" name="action" value="mutate_entity">
-                            <input type="text" name="entity" class="input-text" placeholder="Örn: table:products veya user:42" style="flex:1;" required>
-                            <button type="submit" class="btn btn-primary">⚡ Sayfaları Buharlaştır</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. MARKOV VE W3C PRE-RENDER -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">🔮 3. Geleceği Tahmin Eden Gezinme (Markov & W3C Prerender)</div>
-                </div>
-                <div class="panel-body">
-                    <p style="color:var(--text-secondary); font-size:13px; margin-bottom:1rem;">
-                        <strong>Ne İşe Yarar?</strong> Kullanıcı örneğin anasayfadayken sıklıkla "/urunler" sayfasına gidiyorsa, 
-                        tarayıcıya gizli bir talimat gönderilir. Kullanıcı henüz tıklamadan sayfa tarayıcının hafızasında çizilir ve tıklandığı an <strong>0.00 saniyede</strong> ekranda belirir!
-                    </p>
-                    <div class="code-snippet">&lt;!-- Tarayıcıya Gönderilen Spekülasyon Kuralı --&gt;
-<?= htmlspecialchars(json_encode(FphpCache::speculationRules('/'), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></div>
-                </div>
-            </div>
-
-        <?php elseif ($page === 'benchmark'): ?>
-            <!-- ============================================================== -->
-            <!-- SAYFA 5: CANLI HIZ KIYASLAMA (BENCHMARK)                       -->
-            <!-- ============================================================== -->
-            <div class="explainer">
-                <div style="font-size: 1.5rem; line-height: 1;">⚡</div>
-                <div>
-                    <div class="explainer-title">Canlı Performans ve Hız Kıyaslama Laboratuvarı</div>
-                    <div class="explainer-text">
-                        Normal bir PHP işlemi ile FPHP Cache'in L0 RAM, APCu ve NVMe Disk okuma hızlarını doğrudan 
-                        kendi sunucunuzun işlemcisinde binlerce kez çalıştırarak karşılaştırın.
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">Hız Kıyaslamasını Başlat</div>
-                    <form method="GET" style="display:flex; gap:0.5rem; align-items:center;">
-                        <input type="hidden" name="page" value="benchmark">
-                        <input type="hidden" name="run" value="1">
-                        <label style="font-size:12px; color:var(--text-secondary);">Döngü Sayısı:</label>
-                        <select name="iter" class="input-text" style="padding:2px 8px;">
-                            <option value="1000" <?= ($_GET['iter'] ?? '') === '1000' ? 'selected' : '' ?>>1.000 İşlem</option>
-                            <option value="3000" <?= ($_GET['iter'] ?? '') === '3000' || !isset($_GET['iter']) ? 'selected' : '' ?>>3.000 İşlem</option>
-                            <option value="5000" <?= ($_GET['iter'] ?? '') === '5000' ? 'selected' : '' ?>>5.000 İşlem</option>
-                        </select>
-                        <button type="submit" class="btn btn-primary">🚀 Kıyaslamayı Çalıştır</button>
-                    </form>
-                </div>
-                <div class="panel-body">
-                    <?php if ($benchResults === null): ?>
-                        <div style="padding:2rem; text-align:center; color:var(--text-muted);">
-                            Hız testini başlatmak için yukarıdaki <strong>"Kıyaslamayı Çalıştır"</strong> butonuna basın.
-                        </div>
-                    <?php else: ?>
-                        <table class="table">
-                            <thead>
-                                <tr><th>Depolama Katmanı</th><th>İşlem Başına Gecikme</th><th>Saniyede İşlem Kapasitesi (OPS)</th><th>Hızlanma Katı</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr style="background:rgba(239, 68, 68, 0.05);">
-                                    <td><strong><?= $benchResults['uncached']['name'] ?></strong></td>
-                                    <td class="mono" style="color:var(--accent-red);"><?= $benchResults['uncached']['avg_us'] ?> µs</td>
-                                    <td class="mono"><?= $benchResults['uncached']['ops_sec'] ?> req/s</td>
-                                    <td><span class="pill pill-gray">1x (Baz Alındı)</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong><?= $benchResults['file']['name'] ?></strong></td>
-                                    <td class="mono" style="color:var(--accent-cyan);"><?= $benchResults['file']['avg_us'] ?> µs</td>
-                                    <td class="mono"><?= $benchResults['file']['ops_sec'] ?> req/s</td>
-                                    <td><span class="pill pill-blue">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['file']['avg_us'])) ?>x Daha Hızlı</span></td>
-                                </tr>
-                                <?php if ($benchResults['apcu'] !== null): ?>
-                                    <tr>
-                                        <td><strong><?= $benchResults['apcu']['name'] ?></strong></td>
-                                        <td class="mono" style="color:var(--accent-green);"><?= $benchResults['apcu']['avg_us'] ?> µs</td>
-                                        <td class="mono"><?= $benchResults['apcu']['ops_sec'] ?> req/s</td>
-                                        <td><span class="pill pill-green">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['apcu']['avg_us'])) ?>x Daha Hızlı</span></td>
-                                    </tr>
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">Aktif Önbellek Dosyaları (<?= count($cacheFiles) ?> Adet)</div>
+                                <div style="display:flex; gap:8px;">
+                                    <form method="POST" action="index.php?page=files" onsubmit="return confirm('Tüm dosyaları silmek istiyor musunuz?');">
+                                        <input type="hidden" name="action" value="clear_all">
+                                        <button type="submit" class="btn-ubuntu-danger" style="padding:4px 10px; font-size:12px;">
+                                            🗑️ Depoyu Boşalt
+                                        </button>
+                                    </form>
+                                    <a href="index.php?page=files" class="btn-ubuntu-secondary" style="padding:4px 10px; font-size:12px;">
+                                        🔄 Yenile
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="ub-panel-body" style="padding:0;">
+                                <?php if (empty($cacheFiles)): ?>
+                                    <div style="padding:40px; text-align:center; color:var(--ub-text-muted);">
+                                        Şu anda önbellekte dosya bulunmuyor. Ana sayfayı ziyaret ettiğinizde otomatik oluşacaktır.
+                                    </div>
+                                <?php else: ?>
+                                    <table class="ub-table">
+                                        <thead>
+                                            <tr><th>Dosya Adı</th><th>Tipi</th><th>Boyut</th><th>Son Değişiklik</th><th style="text-align:right;">İşlem</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($cacheFiles as $cf): ?>
+                                                <tr>
+                                                    <td style="font-family:var(--font-mono); font-weight:bold;"><?= htmlspecialchars($cf['name']) ?></td>
+                                                    <td><span class="ub-pill ub-pill-blue"><?= $cf['type'] ?></span></td>
+                                                    <td style="font-family:var(--font-mono);"><?= $cf['size'] ?></td>
+                                                    <td style="color:var(--ub-text-muted); font-size:12px;"><?= $cf['mtime'] ?></td>
+                                                    <td style="text-align:right;">
+                                                        <form method="POST" action="index.php?page=files" style="display:inline;" onsubmit="return confirm('Bu dosyayı silmek istiyor musunuz?');">
+                                                            <input type="hidden" name="action" value="delete_file">
+                                                            <input type="hidden" name="file_path" value="<?= htmlspecialchars($cf['path']) ?>">
+                                                            <button type="submit" class="btn-ubuntu-danger" style="padding:3px 8px; font-size:11px;">Sil</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
                                 <?php endif; ?>
-                                <tr>
-                                    <td><strong><?= $benchResults['memory']['name'] ?></strong></td>
-                                    <td class="mono" style="color:var(--accent-green);"><?= $benchResults['memory']['avg_us'] ?> µs</td>
-                                    <td class="mono"><?= $benchResults['memory']['ops_sec'] ?> req/s</td>
-                                    <td><span class="pill pill-green">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['memory']['avg_us'])) ?>x Işık Hızında</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
+
+                    <!-- ============================================================== -->
+                    <!-- SAYFA 4: AKILLI ZEKA MOTORLARI (PID & DAG)                     -->
+                    <!-- ============================================================== -->
+                    <?php elseif ($page === 'intelligence'): ?>
+                        <div class="ub-banner">
+                            <div class="ub-banner-icon">🧠</div>
+                            <div>
+                                <div class="ub-banner-title">Otonom Zeka: PID Homeostasis & Reaktif Soyağacı</div>
+                                <div class="ub-banner-desc">
+                                    FPHP Cache sistem yükünü hissedip kendini koruyan bir <strong>PID Kontrolörü</strong> ve 
+                                    veritabanı değişimlerinde sadece ilgili sayfaları milisaniyede silen <strong>Reaktif Soyağacı (DAG)</strong> içerir.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 1. PID SİBERNETİK KORUMA -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">🎛️ 1. Otonom Yük & RAM Koruyucusu (PID Kontrolörü)</div>
+                                <span class="ub-pill ub-pill-green">OTONOM AKTİF</span>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:14px;">
+                                    Trafik patlaması anında sistem RAM oranını ve istek gecikmesini hesaplayarak Stale-While-Revalidate (SWR) pencerelerini dinamik olarak genişletir.
+                                </p>
+                                <div class="ub-kpi-grid">
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Hedef Bellek Sınırı</div>
+                                        <div class="ub-kpi-value"><?= round(($pidData['setpoint'] ?? 0.70) * 100) ?>%</div>
+                                        <div class="ub-kpi-sub">Sistemin güvende tuttuğu RAM oranı</div>
+                                    </div>
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Anlık RAM Tüketimi</div>
+                                        <div class="ub-kpi-value" style="color:var(--ub-success);"><?= round(($pidData['memory_ratio'] ?? 0) * 100, 1) ?>%</div>
+                                        <div class="ub-kpi-sub"><?= $pidData['memory_used_mb'] ?? 2 ?> MB / <?= $pidData['memory_limit_mb'] ?? 128 ?> MB</div>
+                                    </div>
+                                    <div class="ub-kpi-card">
+                                        <div class="ub-kpi-label">Dinamik SWR Koruma Penceresi</div>
+                                        <div class="ub-kpi-value" style="color:var(--ub-warning);"><?= $swrGrace ?>s</div>
+                                        <div class="ub-kpi-sub">Yük dalgalanmasında otomatik esner</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. REAKTİF VERİ SOYAĞACI (DAG) -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">🧬 2. Reaktif Veri Soyağacı (Kendi Kendini Silen Akıllı Cache)</div>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:14px;">
+                                    Veritabanındaki bir tablo veya kayıt değiştiğinde o veriyi kullanan tüm sayfalar anında buharlaşır; diğer sayfalar dokunulmadan taze kalır.
+                                </p>
+                                <div style="background:#1e1e1e; border:1px solid var(--ub-card-border); border-radius:8px; padding:16px;">
+                                    <div style="font-weight:700; font-size:13px; margin-bottom:8px;">Canlı Veri Mutasyonu Test Edin:</div>
+                                    <form method="POST" action="index.php?page=intelligence" style="display:flex; gap:8px; max-width:600px; margin-bottom:10px;">
+                                        <input type="hidden" name="action" value="mutate_entity">
+                                        <input type="text" name="entity" id="entityInput" class="ub-input" placeholder="Örn: table:products veya users:10" style="flex:1;" required>
+                                        <button type="submit" class="btn-ubuntu">⚡ Sayfaları Buharlaştır</button>
+                                    </form>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <span style="font-size:12px; color:var(--ub-text-muted);">Hızlı Deneyin:</span>
+                                        <button type="button" class="btn-ubuntu-secondary" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('entityInput').value='table:products';">table:products</button>
+                                        <button type="button" class="btn-ubuntu-secondary" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('entityInput').value='table:orders';">table:orders</button>
+                                        <button type="button" class="btn-ubuntu-secondary" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('entityInput').value='users:42';">users:42</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. MARKOV & W3C PRE-RENDER -->
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">🔮 3. Geleceği Tahmin Eden Gezinme (Markov & W3C Prerender)</div>
+                            </div>
+                            <div class="ub-panel-body">
+                                <p style="color:var(--ub-text-muted); font-size:13px; margin-bottom:10px;">
+                                    Kullanıcının sonraki tıklayacağı sayfayı matematiksel olarak tahmin edip arka planda tarayıcıya önceden çizdirir:
+                                </p>
+                                <div class="ub-terminal">&lt;!-- W3C Speculation Rules (Otomatik Enjekte Edilen Kural) --&gt;
+<?= htmlspecialchars(json_encode(FphpCache::speculationRules('/'), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></div>
+                            </div>
+                        </div>
+
+                    <!-- ============================================================== -->
+                    <!-- SAYFA 5: CANLI HIZ KIYASLAMA (BENCHMARK)                       -->
+                    <!-- ============================================================== -->
+                    <?php elseif ($page === 'benchmark'): ?>
+                        <div class="ub-banner">
+                            <div class="ub-banner-icon">⚡</div>
+                            <div>
+                                <div class="ub-banner-title">Performans ve Hız Kıyaslama Laboratuvarı</div>
+                                <div class="ub-banner-desc">
+                                    Normal bir PHP işlemi ile FPHP Cache'in L0 Bellek, APCu RAM ve NVMe Disk okuma hızlarını doğrudan sunucunuzun işlemcisinde binlerce kez koşturup kıyaslayın.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ub-panel">
+                            <div class="ub-panel-header">
+                                <div class="ub-panel-title">Kıyaslama Testini Başlat</div>
+                                <form method="GET" action="index.php" style="display:flex; gap:10px; align-items:center;">
+                                    <input type="hidden" name="page" value="benchmark">
+                                    <input type="hidden" name="run" value="1">
+                                    <label style="font-size:13px; color:var(--ub-text-muted);">Döngü Sayısı:</label>
+                                    <select name="iter" class="ub-input" style="padding:4px 8px;">
+                                        <option value="1000" <?= ($_GET['iter'] ?? '') === '1000' ? 'selected' : '' ?>>1.000 İşlem</option>
+                                        <option value="3000" <?= ($_GET['iter'] ?? '') === '3000' || !isset($_GET['iter']) ? 'selected' : '' ?>>3.000 İşlem</option>
+                                        <option value="5000" <?= ($_GET['iter'] ?? '') === '5000' ? 'selected' : '' ?>>5.000 İşlem</option>
+                                    </select>
+                                    <button type="submit" class="btn-ubuntu">🚀 Kıyaslamayı Çalıştır</button>
+                                </form>
+                            </div>
+                            <div class="ub-panel-body">
+                                <?php if ($benchResults === null): ?>
+                                    <div style="padding:40px; text-align:center; color:var(--ub-text-muted);">
+                                        Testi başlatmak için yukarıdaki <strong>"Kıyaslamayı Çalıştır"</strong> butonuna basın.
+                                    </div>
+                                <?php else: ?>
+                                    <table class="ub-table">
+                                        <thead>
+                                            <tr><th>Depolama Katmanı</th><th>İşlem Başına Gecikme</th><th>Saniyede İşlem Kapasitesi (OPS)</th><th>Hızlanma Katı</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="background:rgba(199, 22, 43, 0.1);">
+                                                <td><strong><?= $benchResults['uncached']['name'] ?></strong></td>
+                                                <td style="font-family:var(--font-mono); color:#ff6b6b;"><?= $benchResults['uncached']['avg_us'] ?> µs</td>
+                                                <td style="font-family:var(--font-mono);"><?= $benchResults['uncached']['ops_sec'] ?> req/s</td>
+                                                <td><span class="ub-pill ub-pill-grey">1x (Baz Alındı)</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong><?= $benchResults['file']['name'] ?></strong></td>
+                                                <td style="font-family:var(--font-mono); color:#62a0ea;"><?= $benchResults['file']['avg_us'] ?> µs</td>
+                                                <td style="font-family:var(--font-mono);"><?= $benchResults['file']['ops_sec'] ?> req/s</td>
+                                                <td><span class="ub-pill ub-pill-blue">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['file']['avg_us'])) ?>x Daha Hızlı</span></td>
+                                            </tr>
+                                            <?php if ($benchResults['apcu'] !== null): ?>
+                                                <tr>
+                                                    <td><strong><?= $benchResults['apcu']['name'] ?></strong></td>
+                                                    <td style="font-family:var(--font-mono); color:var(--ub-success);"><?= $benchResults['apcu']['avg_us'] ?> µs</td>
+                                                    <td style="font-family:var(--font-mono);"><?= $benchResults['apcu']['ops_sec'] ?> req/s</td>
+                                                    <td><span class="ub-pill ub-pill-green">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['apcu']['avg_us'])) ?>x Daha Hızlı</span></td>
+                                                </tr>
+                                            <?php endif; ?>
+                                            <tr>
+                                                <td><strong><?= $benchResults['memory']['name'] ?></strong></td>
+                                                <td style="font-family:var(--font-mono); color:var(--ub-success);"><?= $benchResults['memory']['avg_us'] ?> µs</td>
+                                                <td style="font-family:var(--font-mono);"><?= $benchResults['memory']['ops_sec'] ?> req/s</td>
+                                                <td><span class="ub-pill ub-pill-green">~<?= round($benchResults['uncached']['avg_us'] / max(0.001, $benchResults['memory']['avg_us'])) ?>x Işık Hızında</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     <?php endif; ?>
-                </div>
-            </div>
-        <?php endif; ?>
 
-        <?php if ($theme === '90s'): ?>
-            <!-- RETRO 90'S WEB BADGES & FOOTER -->
-            <div class="retro-badges">
-                <div class="retro-badge-box">🧭 Web 1.0 Uyumlu</div>
-                <div class="retro-badge-box">💻 Best Viewed 800x600</div>
-                <div class="retro-badge-box">📝 Düz Metin Editörü ile Kodlandı</div>
-                <div class="retro-badge-box">🛡️ CyberSafe Onaylı</div>
-                <div class="retro-badge-box">✅ Valid HTML 3.2</div>
-                <div class="retro-badge-box">⚡ Çift Çekirdekli Donanım Hızlandırma</div>
-            </div>
+                </div> <!-- /.ubuntu-window-body -->
+            </div> <!-- /.ubuntu-window -->
+        </main> <!-- /.ubuntu-stage -->
+    </div> <!-- /.ubuntu-workspace -->
 
-            <div style="text-align:center; padding:12px; font-size:12px; color:#555; background:#c0c0c0; border-top:1px solid #808080;">
-                <p style="margin-bottom:6px;">
-                    <strong>Webmaster:</strong> Tolgahan Acar &lt;<a href="mailto:webmaster@retro-web.local">webmaster@retro-web.local</a>&gt; | 
-                    <strong>IRC:</strong> #fphp @ EFNet | <strong>ICQ:</strong> 9005090
-                </p>
-                <p style="margin-bottom:6px;">
-                    <a href="javascript:alert('Ziyaretçi defteri henüz boş! İlk imzalayan siz oldunuz.')">[ 📖 Ziyaretçi Defterini İmzala ]</a> | 
-                    <a href="javascript:alert('WebRing sonraki siteye yönlendiriliyor...')">[ 🌐 WebRing: &laquo; Önceki | Rastgele | Sonraki &raquo; ]</a>
-                </p>
-                <p style="font-size:11px; color:#777;">
-                    Bu sayfa basit bir metin editörü ve ham HTML ile yazılmıştır. Telif Hakkı &copy; 90's FPHP Cyber-Lab. Tüm Hakları Saklıdır.
-                </p>
-            </div>
+    <!-- ============================================================== -->
+    <!-- 4. ACTIVITIES OVERLAY (ETKİNLİKLER UYGULAMA MENÜSÜ)           -->
+    <!-- ============================================================== -->
+    <div class="activities-overlay" id="activitiesOverlay" onclick="if(event.target===this) toggleActivities();">
+        <input type="text" class="activities-search" id="activitiesSearch" placeholder="Uygulama veya eylem arayın..." oninput="filterActivities(this.value)">
+        <div class="activities-grid" id="activitiesGrid">
+            <a href="index.php?page=demo" class="activity-card" data-name="başlangıç hız testi demo ana sayfa">
+                <div class="activity-icon">🏠</div>
+                <div class="activity-name">Başlangıç & Test</div>
+            </a>
+            <a href="index.php?page=stats" class="activity-card" data-name="monitör istatistik telemetri kaynak">
+                <div class="activity-icon">📊</div>
+                <div class="activity-name">Sistem Monitörü</div>
+            </a>
+            <a href="index.php?page=files" class="activity-card" data-name="dosyalar nautilus depo gezgin">
+                <div class="activity-icon">📁</div>
+                <div class="activity-name">Nautilus Depo</div>
+            </a>
+            <a href="index.php?page=intelligence" class="activity-card" data-name="zeka pid otonom dag soyağacı">
+                <div class="activity-icon">🧠</div>
+                <div class="activity-name">Otonom Zeka & PID</div>
+            </a>
+            <a href="index.php?page=benchmark" class="activity-card" data-name="kıyaslama hız test benchmark">
+                <div class="activity-icon">⚡</div>
+                <div class="activity-name">Hız Laboratuvarı</div>
+            </a>
+            <a href="index.php?page=stats&action=clear_all" class="activity-card" data-name="temizle boşalt flush ram disk" onclick="return confirm('Tüm önbellek temizlensin mi?');">
+                <div class="activity-icon">🗑️</div>
+                <div class="activity-name">Önbelleği Boşalt</div>
+            </a>
+            <a href="index.php?page=stats&action=prune_expired" class="activity-card" data-name="çöp topla gc bayat temizle">
+                <div class="activity-icon">🧹</div>
+                <div class="activity-name">Bayatları Temizle</div>
+            </a>
+            <a href="index.php?page=stats&action=generate_preload" class="activity-card" data-name="preload opcache derle">
+                <div class="activity-icon">📄</div>
+                <div class="activity-name">Preload Derle</div>
+            </a>
+        </div>
+    </div>
 
-            </div> <!-- /.retro-content-wrap -->
-
-            <!-- 90'LAR KLASİK DURUM ÇUBUĞU -->
-            <div class="win-statusbar">
-                <div class="win-status-pane" style="flex:1;">🌐 Belge: Tamamlandı (0.05 ms / 50 µs)</div>
-                <div class="win-status-pane">🔐 Güvenlik: 40-bit RC4</div>
-                <div class="win-status-pane">💾 Bellek: 16 MB EDO RAM</div>
-                <div class="win-status-pane">⚡ Mod: Dial-up Bypass</div>
-            </div>
-        </div> <!-- /.browser-window -->
-    <?php else: ?>
-            </div> <!-- /.os-window-body -->
-        </main> <!-- /.os-window -->
-    </div> <!-- /.os-workspace -->
-    <?php endif; ?>
-
+    <!-- JAVASCRIPT MOTORU -->
     <script>
+        // CANLI SAAT GÜNCELLEMESİ
+        function updateUbuntuClock() {
+            const now = new Date();
+            const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+            const d = now.getDate();
+            const m = months[now.getMonth()];
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const clockEl = document.getElementById('ubuntuLiveClock');
+            if (clockEl) {
+                clockEl.textContent = `${d} ${m} ${hh}:${mm}`;
+            }
+        }
+        setInterval(updateUbuntuClock, 10000);
+        updateUbuntuClock();
+
+        // ETKİNLİKLER (ACTIVITIES) MENÜSÜ
+        function toggleActivities() {
+            const overlay = document.getElementById('activitiesOverlay');
+            const btn = document.getElementById('btnActivities');
+            const isOpen = overlay.classList.toggle('open');
+            btn.classList.toggle('active', isOpen);
+            if (isOpen) {
+                const search = document.getElementById('activitiesSearch');
+                search.value = '';
+                filterActivities('');
+                search.focus();
+            }
+        }
+
+        function filterActivities(query) {
+            const cards = document.querySelectorAll('.activity-card');
+            const q = query.toLowerCase().trim();
+            cards.forEach(card => {
+                const name = (card.getAttribute('data-name') || '').toLowerCase();
+                card.style.display = (name.includes(q) || q === '') ? 'flex' : 'none';
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('activitiesOverlay');
+                if (overlay && overlay.classList.contains('open')) {
+                    toggleActivities();
+                }
+            }
+        });
+
+        // PENCERE KONTROLLERİ
+        function toggleMaximizeWindow() {
+            const win = document.getElementById('mainUbuntuWindow');
+            win.classList.toggle('maximized');
+        }
+
+        function minimizeWindow() {
+            const win = document.getElementById('mainUbuntuWindow');
+            win.style.opacity = '0.3';
+            win.style.transform = 'scale(0.97)';
+            setTimeout(() => {
+                win.style.opacity = '1';
+                win.style.transform = 'none';
+            }, 300);
+        }
+
+        function closeWindowAlert() {
+            alert('FPHP Cache Denetim Masası arka planda kesintisiz çalışmaya devam ediyor.');
+        }
+
+        // CANLI HIT / MISS FETCH TESTİ
         async function testLiveFetch(isBypass) {
-            // Önbellekli istekte sabit URL istenir. Rastgele zaman damgası eklenirse her istek yeni bir sayfa (MISS) sayılır!
-            const url = isBypass ? 'index.php?fphp_bypass=1' : 'index.php';
+            const url = isBypass ? 'index.php?page=demo&fphp_bypass=1' : 'index.php?page=demo';
             const t0 = performance.now();
 
             try {
@@ -1820,19 +1676,33 @@ require_once __DIR__ . '/fphp-bootstrap.php';
 
                 const isHit = cacheH.includes('HIT');
 
-                document.getElementById('kpi-status').textContent = isHit ? 'HIT (Önbellekte)' : (isBypass ? 'BYPASS' : 'MISS');
-                document.getElementById('kpi-status').style.color = isHit ? 'var(--accent-green)' : 'var(--accent-red)';
-                document.getElementById('kpi-driver').textContent = isHit ? 'OPcache C-RAM / Bytecode' : 'Ağır PHP & Veritabanı Döngüsü';
+                const statusEl = document.getElementById('kpi-status');
+                const driverEl = document.getElementById('kpi-driver');
+                const timeEl = document.getElementById('kpi-time');
+                const dbEl = document.getElementById('kpi-db');
+                const speedupEl = document.getElementById('kpi-speedup');
+                const headersEl = document.getElementById('kpi-headers');
 
-                document.getElementById('kpi-time').textContent = timeH;
-                document.getElementById('kpi-time').style.color = isHit ? 'var(--accent-cyan)' : 'var(--accent-amber)';
-                document.getElementById('kpi-time').nextElementSibling.textContent = 'Tarayıcı-Sunucu Ağ Turu: ' + roundtripMs + ' ms';
-
-                document.getElementById('kpi-db').textContent = isHit ? '%0 Yük' : '%100 Yük';
-                document.getElementById('kpi-db').style.color = isHit ? 'var(--accent-green)' : 'var(--accent-red)';
-                document.getElementById('kpi-db').nextElementSibling.textContent = isHit ? '0 DB sorgusu, sıfır CPU kaybı' : 'Veritabanı ve framework çalıştı';
-
-                document.getElementById('kpi-speedup').textContent = isHit ? speedupH : '1x';
+                if (statusEl) {
+                    statusEl.textContent = isHit ? 'HIT (Önbellekte)' : (isBypass ? 'BYPASS' : 'MISS');
+                    statusEl.style.color = isHit ? 'var(--ub-success)' : 'var(--ub-danger)';
+                }
+                if (driverEl) {
+                    driverEl.textContent = isHit ? 'OPcache C-RAM / Bytecode' : 'Ağır PHP & Veritabanı Döngüsü';
+                }
+                if (timeEl) {
+                    timeEl.textContent = timeH;
+                    timeEl.style.color = isHit ? '#62a0ea' : 'var(--ub-warning)';
+                    timeEl.nextElementSibling.textContent = 'Tarayıcı-Sunucu Ağ Turu: ' + roundtripMs + ' ms';
+                }
+                if (dbEl) {
+                    dbEl.textContent = isHit ? '%0 Yük' : '%100 Yük';
+                    dbEl.style.color = isHit ? 'var(--ub-success)' : 'var(--ub-danger)';
+                    dbEl.nextElementSibling.textContent = isHit ? '0 DB sorgusu, sıfır CPU kaybı' : 'Veritabanı ve framework çalıştı';
+                }
+                if (speedupEl) {
+                    speedupEl.textContent = isHit ? speedupH : '1x';
+                }
 
                 let dump = 'HTTP/1.1 ' + res.status + ' ' + res.statusText + '\n';
                 res.headers.forEach((v, k) => {
@@ -1840,7 +1710,9 @@ require_once __DIR__ . '/fphp-bootstrap.php';
                         dump += k + ': ' + v + '\n';
                     }
                 });
-                document.getElementById('kpi-headers').textContent = dump;
+                if (headersEl) {
+                    headersEl.textContent = dump;
+                }
             } catch (e) {
                 console.error(e);
             }
