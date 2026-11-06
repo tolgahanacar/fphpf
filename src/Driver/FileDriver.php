@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Fphp\Driver;
 
+use Fphp\Index\CatalogIndex;
+
 /**
  * High-Performance Atomic File Cache Driver
  * 
@@ -13,6 +15,7 @@ namespace Fphp\Driver;
  * - Expiration check in fast header (no full unserialize needed if expired)
  * - Native support for raw compressed strings or serialized objects
  * - Sub-millisecond (50 - 150 µs) latency on SSD/NVMe drives
+ * - Integrated Catalog & Time-Bucket Slot Indexing for instantaneous pruning and prefix deletion
  */
 class FileDriver implements CacheDriverInterface
 {
@@ -20,19 +23,33 @@ class FileDriver implements CacheDriverInterface
     protected string $prefix;
     protected bool $useCompression;
     protected int $compressionLevel;
+    protected ?CatalogIndex $catalogIndex = null;
 
     public function __construct(
         string $cachePath = '',
         string $prefix = 'fphp_',
         bool $useCompression = false,
-        int $compressionLevel = 6
+        int $compressionLevel = 6,
+        ?CatalogIndex $catalogIndex = null
     ) {
         $this->cachePath = !empty($cachePath) ? rtrim($cachePath, '/\\') : dirname(__DIR__, 2) . '/cache';
         $this->prefix = $prefix;
         $this->useCompression = $useCompression && function_exists('gzcompress');
         $this->compressionLevel = $compressionLevel;
+        $this->catalogIndex = $catalogIndex;
 
         $this->ensureDirectoryExists($this->cachePath);
+    }
+
+    public function setCatalogIndex(?CatalogIndex $catalogIndex): self
+    {
+        $this->catalogIndex = $catalogIndex;
+        return $this;
+    }
+
+    public function getCatalogIndex(): ?CatalogIndex
+    {
+        return $this->catalogIndex;
     }
 
     public function isAvailable(): bool
@@ -138,6 +155,10 @@ class FileDriver implements CacheDriverInterface
             }
         }
 
+        if ($this->catalogIndex !== null) {
+            $this->catalogIndex->record($this->prefix . $key, $filePath, $expiresAt, strlen($content));
+        }
+
         return true;
     }
 
@@ -184,6 +205,9 @@ class FileDriver implements CacheDriverInterface
 
     public function clear(): bool
     {
+        if ($this->catalogIndex !== null) {
+            $this->catalogIndex->clear();
+        }
         return $this->deleteDirectoryContents($this->cachePath);
     }
 
@@ -199,8 +223,15 @@ class FileDriver implements CacheDriverInterface
         $freedBytes = 0;
         $now = time();
 
+        // 1. Fast-path: O(1) Time-Bucket Slot Index Prune
+        if ($this->catalogIndex !== null && $this->catalogIndex->isEnabled()) {
+            $slotPrune = $this->catalogIndex->prune($now);
+            $deletedCount += $slotPrune['deleted_files'];
+            $freedBytes += $slotPrune['freed_bytes'];
+        }
+
         if (!is_dir($this->cachePath)) {
-            return ['deleted_files' => 0, 'freed_bytes' => 0];
+            return ['deleted_files' => $deletedCount, 'freed_bytes' => $freedBytes];
         }
 
         $iterator = new \RecursiveIteratorIterator(
@@ -343,6 +374,15 @@ class FileDriver implements CacheDriverInterface
     public function deletePrefix(string $prefix): int
     {
         $count = 0;
+
+        // 1. Fast-path: Targeted Inverted Prefix Index
+        if ($this->catalogIndex !== null && $this->catalogIndex->isEnabled()) {
+            $count = $this->catalogIndex->deletePrefix($this->prefix . $prefix);
+            if ($count > 0) {
+                return $count;
+            }
+        }
+
         if (!is_dir($this->cachePath)) {
             return 0;
         }

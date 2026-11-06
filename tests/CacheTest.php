@@ -58,6 +58,7 @@ class CacheTest
         $this->testReactiveLineageGraph();
         $this->testPidController();
         $this->testL1MemoryStore();
+        $this->testCatalogIndexing();
 
         echo "\n--------------------------------------------\n";
         echo "Results: {$this->passed} PASSED, {$this->failed} FAILED\n";
@@ -952,6 +953,85 @@ XML;
         // Diagnostics telemetry
         $diagnostics = $store->getDiagnostics();
         $this->assert('L1MemoryStore produces diagnostics array', is_array($diagnostics) && isset($diagnostics['active'], $diagnostics['memory_type']));
+    }
+
+    private function testCatalogIndexing(): void
+    {
+        echo "\nTesting Zero-Overhead Catalog & Temporal Slot Indexing...\n";
+        $testDir = dirname(__DIR__) . '/cache/test_catalog_index';
+        @mkdir($testDir, 0775, true);
+
+        // 1. Time-Bucket SlotIndex
+        $slotIndex = new \Fphp\Index\SlotIndex($testDir, 3600);
+        $mockExpiredFile = $testDir . '/expired_item.fpc';
+        $mockFreshFile = $testDir . '/fresh_item.fpc';
+        file_put_contents($mockExpiredFile, 'EXPIRED_PAYLOAD');
+        file_put_contents($mockFreshFile, 'FRESH_PAYLOAD');
+
+        $now = time();
+        $slotIndex->record($mockExpiredFile, $now - 60, strlen('EXPIRED_PAYLOAD'));
+        $slotIndex->record($mockFreshFile, $now + 7200, strlen('FRESH_PAYLOAD'));
+
+        $pruneResult = $slotIndex->prune($now);
+        $this->assert('SlotIndex::prune deletes expired slot entry', !file_exists($mockExpiredFile));
+        $this->assert('SlotIndex::prune preserves fresh entry', file_exists($mockFreshFile));
+        $this->assert('SlotIndex::prune tracks deleted files and freed bytes', $pruneResult['deleted_files'] >= 1 && $pruneResult['freed_bytes'] > 0);
+
+        // Clean mock fresh
+        @unlink($mockFreshFile);
+
+        // 2. Inverted PrefixIndex
+        $prefixIndex = new \Fphp\Index\PrefixIndex($testDir);
+        $fileBlog1 = $testDir . '/blog_1.fphp';
+        $fileBlog2 = $testDir . '/blog_2.fphp';
+        $fileShop = $testDir . '/shop_1.fphp';
+        file_put_contents($fileBlog1, 'BLOG_1');
+        file_put_contents($fileBlog2, 'BLOG_2');
+        file_put_contents($fileShop, 'SHOP_1');
+
+        $prefixIndex->record('blog:posts:first', $fileBlog1);
+        $prefixIndex->record('blog:posts:second', $fileBlog2);
+        $prefixIndex->record('shop:products:item', $fileShop);
+
+        $initialVersion = $prefixIndex->getVersion('blog:');
+        $deletedPrefixCount = $prefixIndex->purgePrefix('blog:');
+
+        $this->assert('PrefixIndex::purgePrefix deletes target prefix files', !file_exists($fileBlog1) && !file_exists($fileBlog2));
+        $this->assert('PrefixIndex::purgePrefix preserves unmatching prefix', file_exists($fileShop));
+        $this->assert('PrefixIndex::purgePrefix reports deleted count', $deletedPrefixCount === 2);
+        $this->assert('PrefixIndex::bumpVersion updates virtual prefix version', $prefixIndex->getVersion('blog:') > $initialVersion);
+
+        @unlink($fileShop);
+
+        // 3. Unified CatalogIndex Coordinator
+        $catalog = new \Fphp\Index\CatalogIndex($testDir, [
+            'enabled' => true,
+            'slot_granularity' => 3600
+        ]);
+        $this->assert('CatalogIndex coordinator is enabled', $catalog->isEnabled());
+
+        $stats = $catalog->getStats();
+        $this->assert('CatalogIndex produces diagnostics stats', isset($stats['slot_index'], $stats['prefix_index']));
+
+        // 4. FileDriver Integration with CatalogIndex
+        $driverDir = $testDir . '/driver_run';
+        $driver = new FileDriver($driverDir, 'test_idx:', false, 6, $catalog);
+        $driver->set('cat:item_a', 'VAL_A', 3600);
+        $driver->set('cat:item_b', 'VAL_B', 3600);
+        $driver->set('other:item_c', 'VAL_C', 3600);
+
+        $this->assert('FileDriver stores items with catalog index active', $driver->get('cat:item_a') === 'VAL_A');
+        
+        $purgedCount = $driver->deletePrefix('cat:');
+        $this->assert('FileDriver::deletePrefix uses CatalogIndex fast-path', $purgedCount === 2);
+        $this->assert('FileDriver deleted matching items', $driver->get('cat:item_a') === null);
+        $this->assert('FileDriver preserved non-matching items', $driver->get('other:item_c') === 'VAL_C');
+
+        // Cleanup test dir
+        $catalog->clear();
+        $driver->clear();
+        @rmdir($driverDir);
+        @rmdir($testDir);
     }
 }
 

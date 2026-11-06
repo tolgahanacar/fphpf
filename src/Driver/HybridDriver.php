@@ -204,4 +204,15 @@ class HybridDriver implements CacheDriverInterface
     {
         return $this->l2;
     }
+
+    public function setCatalogIndex(?\Fphp\Index\CatalogIndex $catalogIndex): self
+    {
+        $this->l2->setCatalogIndex($catalogIndex);
+        return $this;
+    }
+
+    public function getCatalogIndex(): ?\Fphp\Index\CatalogIndex
+    {
+        return $this->l2->getCatalogIndex();
+    }
 }

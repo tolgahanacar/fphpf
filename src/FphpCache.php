@@ -35,6 +35,7 @@ class FphpCache
     protected PageCache $pageCache;
     protected StatsTracker $stats;
     protected TagManager $tagManager;
+    protected ?\Fphp\Index\CatalogIndex $catalogIndex = null;
     protected ?\Fphp\Fragment\FragmentCache $fragmentCache = null;
 
     public function __construct(?Config $config = null)
@@ -42,8 +43,17 @@ class FphpCache
         $this->config = $config ?? new Config();
         $this->stats = new StatsTracker($this->config->get('cache_dir'));
 
+        $this->catalogIndex = new \Fphp\Index\CatalogIndex(
+            $this->config->get('cache_dir'),
+            (array)$this->config->get('indexing', [])
+        );
+
         $driverType = $this->config->get('driver', 'hybrid');
         $this->driver = $this->createDriver($driverType);
+        if (method_exists($this->driver, 'setCatalogIndex')) {
+            $this->driver->setCatalogIndex($this->catalogIndex);
+        }
+
         $this->tagManager = new TagManager($this->driver);
         $this->pageCache = new PageCache($this->config, $this->driver, $this->stats);
     }
@@ -315,11 +325,12 @@ class FphpCache
     }
 
     /**
-     * Clear all cached data across all storage layers (L1, Bytecode, Stream, Driver).
+     * Clear all cached data across all storage layers (L1, Bytecode, Stream, Driver, CatalogIndex).
      */
     public static function clear(): bool
     {
         $inst = self::instance();
+        $inst->catalogIndex?->clear();
         $inst->pageCache->getL1Store()->clear();
         (new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir')))->clear();
         (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->clear();
@@ -328,6 +339,7 @@ class FphpCache
 
     /**
      * Delete all items matching a given key prefix across active cache tiers.
+     * Uses the fast-path CatalogIndex before falling back to driver traversal.
      *
      * @param string $prefix Key prefix to match
      * @return int Number of deleted items
@@ -335,14 +347,21 @@ class FphpCache
     public static function deletePrefix(string $prefix): int
     {
         $inst = self::instance();
-        if (method_exists($inst->driver, 'deletePrefix')) {
-            return $inst->driver->deletePrefix($prefix);
+        $deleted = 0;
+        if ($inst->catalogIndex !== null && $inst->catalogIndex->isEnabled()) {
+            $deleted += $inst->catalogIndex->deletePrefix($prefix);
         }
-        return 0;
+        if (method_exists($inst->driver, 'deletePrefix')) {
+            $driverDeleted = $inst->driver->deletePrefix($prefix);
+            if ($deleted === 0) {
+                $deleted = $driverDeleted;
+            }
+        }
+        return $deleted;
     }
 
     /**
-     * Garbage Collector: Prune all expired disk cache files across drivers.
+     * Garbage Collector: Prune all expired disk cache files across drivers and Time-Bucket Slot Index.
      *
      * @param int $maxAge Optional max age in seconds
      * @return array Summary of pruned files and freed bytes
@@ -350,6 +369,11 @@ class FphpCache
     public static function prune(int $maxAge = 0): array
     {
         $inst = self::instance();
+        $indexPrune = ['deleted_files' => 0, 'freed_bytes' => 0, 'pruned_slots' => 0];
+        if ($inst->catalogIndex !== null && $inst->catalogIndex->isEnabled()) {
+            $indexPrune = $inst->catalogIndex->prune();
+        }
+
         $streamStore = new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir'));
         $streamPrune = $streamStore->prune($maxAge);
 
@@ -362,12 +386,21 @@ class FphpCache
         }
 
         return [
-            'total_deleted' => ($streamPrune['deleted_files'] ?? 0) + ($bytecodePrune['deleted_files'] ?? 0) + ($driverPrune['deleted_files'] ?? 0),
-            'total_freed_bytes' => ($streamPrune['freed_bytes'] ?? 0) + ($bytecodePrune['freed_bytes'] ?? 0) + ($driverPrune['freed_bytes'] ?? 0),
+            'total_deleted' => ($indexPrune['deleted_files'] ?? 0) + ($streamPrune['deleted_files'] ?? 0) + ($bytecodePrune['deleted_files'] ?? 0) + ($driverPrune['deleted_files'] ?? 0),
+            'total_freed_bytes' => ($indexPrune['freed_bytes'] ?? 0) + ($streamPrune['freed_bytes'] ?? 0) + ($bytecodePrune['freed_bytes'] ?? 0) + ($driverPrune['freed_bytes'] ?? 0),
+            'catalog_index' => $indexPrune,
             'bytecode_cache' => $bytecodePrune,
             'stream_cache' => $streamPrune,
             'file_cache' => $driverPrune
         ];
+    }
+
+    /**
+     * Get the active CatalogIndex coordinator.
+     */
+    public static function getCatalogIndex(): ?\Fphp\Index\CatalogIndex
+    {
+        return self::instance()->catalogIndex;
     }
 
     /**

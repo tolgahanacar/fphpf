@@ -125,6 +125,14 @@ class Config
             'profiler' => [
                 'enabled' => true,
                 'detailed_metrics' => true
+            ],
+
+            // High-Performance Zero-Overhead Catalog & Invalidation Indexing
+            'indexing' => [
+                'enabled' => true,
+                'slot_granularity' => 3600, // Time-bucket slot width in seconds (e.g. 1 hour)
+                'virtual_prefix' => true,   // O(1) in-memory virtual prefix invalidation
+                'catalog_slots' => true     // Fast targeted expiration pruning without full disk scan
             ]
         ];
 
