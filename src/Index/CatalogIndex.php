@@ -120,3 +120,4 @@ class CatalogIndex
         return $this->prefixIndex;
     }
 }
+
