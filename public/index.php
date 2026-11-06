@@ -17,7 +17,10 @@ use Fphp\Profiler\Metrics;
 // Eğer URL'de özel bir yönetim sayfası veya eylem yoksa FPHP Full Page Microcache devreye girer
 $page = $_GET['page'] ?? 'demo';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
-$theme = $_GET['theme'] ?? $_COOKIE['fphp_theme'] ?? '1996';
+$theme = $_GET['theme'] ?? $_COOKIE['fphp_theme'] ?? '90s';
+if ($theme === '1996') {
+    $theme = '90s';
+}
 if (isset($_GET['theme'])) {
     @setcookie('fphp_theme', $theme, time() + 86400 * 30, '/');
 }
@@ -494,10 +497,11 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
         }
 
         /* ============================================================== */
-        /* 1996 NETSCAPE NAVIGATOR & GEOCITIES RETRO THEME                */
+        /* 90'S RETRO CYBER-WEB THEME (NOSTALGIA EDITION)                 */
         /* ============================================================== */
-        body.theme-1996 {
-            background-color: #008080 !important; /* Windows 95 Teal Desktop */
+        body.theme-90s,
+        body.theme-retro {
+            background-color: #008080 !important; /* 90'lar Klasik Turkuaz Masaüstü */
             background-image: radial-gradient(rgba(0, 0, 0, 0.15) 15%, transparent 16%) !important;
             background-size: 6px 6px !important;
             color: #000000 !important;
@@ -506,11 +510,12 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             padding: 10px !important;
         }
 
-        body.theme-1996 a { color: #0000ff !important; text-decoration: underline !important; }
-        body.theme-1996 a:visited { color: #800080 !important; }
-        body.theme-1996 a:active { color: #ff0000 !important; }
+        body.theme-90s a, body.theme-retro a { color: #0000ff !important; text-decoration: underline !important; }
+        body.theme-90s a:visited, body.theme-retro a:visited { color: #800080 !important; }
+        body.theme-90s a:active, body.theme-retro a:active { color: #ff0000 !important; }
 
-        body.theme-1996 .browser-window {
+        body.theme-90s .browser-window,
+        body.theme-retro .browser-window {
             max-width: 1020px;
             margin: 0 auto;
             background: #c0c0c0;
@@ -518,7 +523,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.6);
         }
 
-        body.theme-1996 .win-titlebar {
+        body.theme-90s .win-titlebar,
+        body.theme-retro .win-titlebar {
             background: linear-gradient(90deg, #000080, #1084d0);
             color: #ffffff;
             padding: 3px 6px;
@@ -532,11 +538,13 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             border-bottom: 1px solid #000;
         }
 
-        body.theme-1996 .win-controls {
+        body.theme-90s .win-controls,
+        body.theme-retro .win-controls {
             display: flex;
             gap: 2px;
         }
-        body.theme-1996 .win-btn {
+        body.theme-90s .win-btn,
+        body.theme-retro .win-btn {
             width: 16px;
             height: 14px;
             background: #c0c0c0;
@@ -550,7 +558,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             box-shadow: 1px 1px 0px #000;
         }
 
-        body.theme-1996 .win-menubar {
+        body.theme-90s .win-menubar,
+        body.theme-retro .win-menubar {
             background: #c0c0c0;
             border-bottom: 1px solid #808080;
             padding: 3px 8px;
@@ -561,7 +570,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             color: #000;
         }
 
-        body.theme-1996 .win-toolbar {
+        body.theme-90s .win-toolbar,
+        body.theme-retro .win-toolbar {
             background: #c0c0c0;
             border-bottom: 2px groove #ffffff;
             padding: 4px 8px;
@@ -572,13 +582,15 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             flex-wrap: wrap;
         }
 
-        body.theme-1996 .win-tool-group {
+        body.theme-90s .win-tool-group,
+        body.theme-retro .win-tool-group {
             display: flex;
             gap: 4px;
             align-items: center;
         }
 
-        body.theme-1996 .win-tool-btn {
+        body.theme-90s .win-tool-btn,
+        body.theme-retro .win-tool-btn {
             background: #c0c0c0;
             border: 2px outset #ffffff;
             padding: 2px 7px;
@@ -593,11 +605,13 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             gap: 3px;
             box-shadow: 1px 1px 0px #000;
         }
-        body.theme-1996 .win-tool-btn:active {
+        body.theme-90s .win-tool-btn:active,
+        body.theme-retro .win-tool-btn:active {
             border: 2px inset #ffffff;
         }
 
-        body.theme-1996 .win-urlbar {
+        body.theme-90s .win-urlbar,
+        body.theme-retro .win-urlbar {
             background: #c0c0c0;
             border-bottom: 2px groove #ffffff;
             padding: 4px 8px;
@@ -608,7 +622,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             font-size: 11px;
             font-weight: bold;
         }
-        body.theme-1996 .win-url-input {
+        body.theme-90s .win-url-input,
+        body.theme-retro .win-url-input {
             flex: 1;
             background: #ffffff;
             border: 2px inset #ffffff;
@@ -618,7 +633,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             color: #000;
         }
 
-        body.theme-1996 .retro-content-wrap {
+        body.theme-90s .retro-content-wrap,
+        body.theme-retro .retro-content-wrap {
             background: #ffffff;
             border: 2px inset #ffffff;
             margin: 8px;
@@ -626,13 +642,15 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             color: #000;
         }
 
-        body.theme-1996 .tab-bar {
+        body.theme-90s .tab-bar,
+        body.theme-retro .tab-bar {
             background: #c0c0c0 !important;
             border-bottom: 2px groove #ffffff !important;
             padding: 6px 8px 0 8px !important;
             gap: 3px !important;
         }
-        body.theme-1996 .tab-item {
+        body.theme-90s .tab-item,
+        body.theme-retro .tab-item {
             background: #c0c0c0 !important;
             border: 2px outset #ffffff !important;
             border-bottom: none !important;
@@ -644,14 +662,16 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             padding: 4px 10px !important;
             box-shadow: 1px 1px 0px #000;
         }
-        body.theme-1996 .tab-item.active {
+        body.theme-90s .tab-item.active,
+        body.theme-retro .tab-item.active {
             background: #ffffff !important;
             border-bottom: 2px solid #ffffff !important;
             color: #000080 !important;
             margin-bottom: -2px !important;
         }
 
-        body.theme-1996 .btn {
+        body.theme-90s .btn,
+        body.theme-retro .btn {
             background: #c0c0c0 !important;
             border: 2px outset #ffffff !important;
             color: #000000 !important;
@@ -664,62 +684,74 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             cursor: pointer !important;
             text-decoration: none !important;
         }
-        body.theme-1996 .btn:active {
+        body.theme-90s .btn:active,
+        body.theme-retro .btn:active {
             border: 2px inset #ffffff !important;
         }
-        body.theme-1996 .btn-primary {
+        body.theme-90s .btn-primary,
+        body.theme-retro .btn-primary {
             background: #000080 !important;
             color: #ffff00 !important;
             border: 2px outset #ffffff !important;
         }
-        body.theme-1996 .btn-danger {
+        body.theme-90s .btn-danger,
+        body.theme-retro .btn-danger {
             background: #800000 !important;
             color: #ffffff !important;
             border: 2px outset #ffffff !important;
         }
 
-        body.theme-1996 .panel {
+        body.theme-90s .panel,
+        body.theme-retro .panel {
             background: #e4e4e4 !important;
             border: 2px groove #ffffff !important;
             border-radius: 0 !important;
             margin-bottom: 1.25rem !important;
         }
-        body.theme-1996 .panel-header {
+        body.theme-90s .panel-header,
+        body.theme-retro .panel-header {
             background: #c0c0c0 !important;
             border-bottom: 2px groove #ffffff !important;
         }
-        body.theme-1996 .panel-title {
+        body.theme-90s .panel-title,
+        body.theme-retro .panel-title {
             color: #000080 !important;
             font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
             font-weight: bold !important;
             font-size: 12px !important;
         }
-        body.theme-1996 .panel-body {
+        body.theme-90s .panel-body,
+        body.theme-retro .panel-body {
             color: #000000 !important;
         }
 
-        body.theme-1996 .kpi-card {
+        body.theme-90s .kpi-card,
+        body.theme-retro .kpi-card {
             background: #ffffff !important;
             border: 2px inset #ffffff !important;
             border-radius: 0 !important;
             box-shadow: none !important;
         }
-        body.theme-1996 .kpi-label {
+        body.theme-90s .kpi-label,
+        body.theme-retro .kpi-label {
             color: #000080 !important;
             font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
             font-weight: bold !important;
         }
-        body.theme-1996 .kpi-val {
+        body.theme-90s .kpi-val,
+        body.theme-retro .kpi-val {
             font-family: "Courier New", monospace !important;
             font-weight: bold !important;
             color: #008000 !important;
         }
-        body.theme-1996 .kpi-sub {
+        body.theme-90s .kpi-sub,
+        body.theme-retro .kpi-sub {
             color: #555555 !important;
             font-family: "Times New Roman", Times, serif !important;
         }
 
-        body.theme-1996 .code-snippet {
+        body.theme-90s .code-snippet,
+        body.theme-retro .code-snippet {
             background: #000000 !important;
             color: #00ff00 !important;
             border: 3px inset #808080 !important;
@@ -729,38 +761,45 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2) !important;
         }
 
-        body.theme-1996 .table {
+        body.theme-90s .table,
+        body.theme-retro .table {
             border: 2px inset #ffffff !important;
             background: #ffffff !important;
             color: #000000 !important;
         }
-        body.theme-1996 .table th {
+        body.theme-90s .table th,
+        body.theme-retro .table th {
             background: #000080 !important;
             color: #ffffff !important;
             font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
             border: 1px solid #c0c0c0 !important;
         }
-        body.theme-1996 .table td {
+        body.theme-90s .table td,
+        body.theme-retro .table td {
             border: 1px solid #dcdcdc !important;
             color: #000000 !important;
         }
 
-        body.theme-1996 .explainer {
+        body.theme-90s .explainer,
+        body.theme-retro .explainer {
             background: #ffffcc !important;
             border: 2px inset #ffffff !important;
             border-radius: 0 !important;
             color: #000000 !important;
         }
-        body.theme-1996 .explainer-title {
+        body.theme-90s .explainer-title,
+        body.theme-retro .explainer-title {
             color: #000080 !important;
             font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
             font-size: 13px !important;
         }
-        body.theme-1996 .explainer-text {
+        body.theme-90s .explainer-text,
+        body.theme-retro .explainer-text {
             color: #000000 !important;
         }
 
-        body.theme-1996 .win-statusbar {
+        body.theme-90s .win-statusbar,
+        body.theme-retro .win-statusbar {
             background: #c0c0c0;
             border-top: 2px groove #ffffff;
             padding: 3px 6px;
@@ -769,7 +808,8 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             display: flex;
             gap: 6px;
         }
-        body.theme-1996 .win-status-pane {
+        body.theme-90s .win-status-pane,
+        body.theme-retro .win-status-pane {
             border: 1px inset #ffffff;
             padding: 1px 6px;
             background: #c0c0c0;
@@ -847,18 +887,18 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
         }
     </style>
 </head>
-<body class="<?= $theme === '1996' ? 'theme-1996' : 'theme-modern' ?>">
+<body class="<?= $theme === '90s' ? 'theme-90s' : 'theme-modern' ?>">
 
-<?php if ($theme === '1996'): ?>
+<?php if ($theme === '90s'): ?>
     <!-- ============================================================== -->
-    <!-- 1996 NETSCAPE NAVIGATOR & WINDOWS 95 RETRO BROWSER SHELL       -->
+    <!-- 90'S RETRO CYBER-BROWSER SHELL                                 -->
     <!-- ============================================================== -->
     <div class="browser-window">
         <!-- WINDOW TITLE BAR -->
         <div class="win-titlebar">
             <div style="display:flex; align-items:center; gap:6px;">
                 <span>🧭</span>
-                <span>Netscape Navigator Gold 3.01 - [FPHP HYPER-CACHE '96 - http://www.geocities.com/siliconvalley/fphp96]</span>
+                <span>Retro Web Navigator - [FPHP HYPER-CACHE '90s - http://www.retro-web.local/~fphp]</span>
             </div>
             <div class="win-controls">
                 <div class="win-btn">_</div>
@@ -883,16 +923,16 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
         <!-- WINDOW TOOLBAR -->
         <div class="win-toolbar">
             <div class="win-tool-group">
-                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">⬅ Geri</a>
-                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">➡ İleri</a>
-                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">🏠 Ana Sayfa</a>
+                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">⬅ Geri</a>
+                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">➡ İleri</a>
+                <a href="index.php?page=demo&theme=90s" class="win-tool-btn">🏠 Ana Sayfa</a>
                 <a href="javascript:location.reload()" class="win-tool-btn">🔄 Yenile</a>
                 <a href="javascript:window.print()" class="win-tool-btn">🖨️ Yazdır</a>
                 <a href="javascript:void(0)" class="win-tool-btn" onclick="alert('FPHP C-RAM Önbelleği Durdurulamaz!')">🛑 Durdur</a>
             </div>
             <div class="win-tool-group">
                 <span style="font-family:'MS Sans Serif', Tahoma; font-size:11px; font-weight:bold;">Görünüm:</span>
-                <a href="?page=<?= $page ?>&theme=1996" class="win-tool-btn" style="background:#000080; color:#ffff00 !important;">📺 1996 Netscape</a>
+                <a href="?page=<?= $page ?>&theme=90s" class="win-tool-btn" style="background:#000080; color:#ffff00 !important;">📺 90's Retro Web</a>
                 <a href="?page=<?= $page ?>&theme=modern" class="win-tool-btn">🚀 2026 Modern Cyber</a>
             </div>
         </div>
@@ -900,13 +940,13 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
         <!-- WINDOW URL BAR -->
         <div class="win-urlbar">
             <span>Konum (Location):</span>
-            <input type="text" class="win-url-input" value="http://www.geocities.com/siliconvalley/fphp96/speed.htm?fphp_l1=active" readonly>
+            <input type="text" class="win-url-input" value="http://www.retro-web.local/~fphp/speed.htm?fphp_l1=active" readonly>
             <button class="win-tool-btn" onclick="location.reload()">Neyin Var?</button>
         </div>
 
-        <!-- 1996 SCROLLING MARQUEE TICKER -->
+        <!-- 90'S SCROLLING MARQUEE TICKER -->
         <marquee scrollamount="6" bgcolor="#000080" style="color:#ffff00; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; padding:4px; border:2px inset #ffffff; margin-bottom:4px;">
-            ⚡⚡⚡ DİKKAT CYBER-SÖRFÇÜLER! ⚡ 1996 YILININ İLK 0.05µs (MİKRO-SANİYE) SÜPER-ÖNBELLEK MOTORUNA HOŞ GELDİNİZ! ⚡ ÇEVİRMELİ 28.8K MODEMLERİ TARİHE GÖMEN ZEND OPCACHE VE L1 C-RAM TEKNOLOJİSİ! ⚡ EN İYİ NETSCAPE 3.0 GOLD VE 800x600 ÇÖZÜNÜRLÜKTE GÖRÜNTÜLENİR! ⚡⚡⚡
+            ⚡⚡⚡ DİKKAT CYBER-SÖRFÇÜLER! ⚡ 90'LARIN İLK 0.05µs (MİKRO-SANİYE) SÜPER-ÖNBELLEK MOTORUNA HOŞ GELDİNİZ! ⚡ ÇEVİRMELİ 28.8K MODEMLERİ TARİHE GÖMEN ZEND OPCACHE VE L1 C-RAM TEKNOLOJİSİ! ⚡ EN İYİ 800x600 ÇÖZÜNÜRLÜKTE GÖRÜNTÜLENİR! ⚡⚡⚡
         </marquee>
 
         <!-- NOTIFICATION -->
@@ -916,7 +956,7 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             </div>
         <?php endif; ?>
 
-        <!-- TABS (RETRO 1996 STYLE) -->
+        <!-- TABS (RETRO 90'S STYLE) -->
         <nav class="tab-bar">
             <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
                 🏠 AnaSayfa.htm
@@ -945,7 +985,7 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
             <div class="theme-pill-switch">
-                <a href="?page=<?= $page ?>&theme=1996" class="btn">📺 1996 Retro Web</a>
+                <a href="?page=<?= $page ?>&theme=90s" class="btn">📺 90's Retro Web</a>
                 <a href="?page=<?= $page ?>&theme=modern" class="btn btn-primary">🚀 2026 Modern Cyber</a>
             </div>
             <div style="font-size: 12px; color: var(--text-muted);">
@@ -987,14 +1027,14 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             <!-- ============================================================== -->
             <!-- SAYFA 1: HIZLI BAŞLANGIÇ VE CANLI TEST                         -->
             <!-- ============================================================== -->
-            <?php if ($theme === '1996'): ?>
+            <?php if ($theme === '90s'): ?>
                 <div style="text-align:center; margin-bottom:1rem;">
                     <div class="hazard-stripe"></div>
                     <h1 style="font-family:'Impact', 'Arial Black', sans-serif; font-size: 2.3rem; color: #000080; text-shadow: 2px 2px #ffff00, 3px 3px #ff0000; margin: 0.5rem 0; letter-spacing:1px;">
-                        ★★★ FPHP HYPER-CACHE '96 ★★★
+                        ★★★ FPHP HYPER-CACHE '90s ★★★
                     </h1>
                     <p style="font-family:'Comic Sans MS', cursive, sans-serif; font-size: 14px; color: #800000; margin-bottom:6px;">
-                        <b>"DÜNYANIN EN HIZLI KİŞİSEL ANA SAYFASI & 0.05µs C-RAM HIZLANDIRICISI"</b>
+                        <b>"DÜNYANIN EN HIZLI 90'LAR KİŞİSEL ANA SAYFASI & 0.05µs C-RAM HIZLANDIRICISI"</b>
                     </p>
                     <div style="margin: 6px 0;">
                         <span class="blink" style="color:#cc0000; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; background:#ffff00; padding:2px 8px; border:1px solid #cc0000;">
@@ -1003,23 +1043,23 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
                     </div>
                     <div style="margin: 8px 0;">
                         <div class="retro-counter">
-                            SAYFA ZİYARET SAYACI: <span>0</span><span>0</span><span>4</span><span>2</span><span>8</span><span>9</span>
+                            SAYFA ZİYARET SAYACI (90'LARDAN BERİ): <span>0</span><span>0</span><span>4</span><span>2</span><span>8</span><span>9</span>
                         </div>
                     </div>
                     <div class="rainbow-hr"></div>
                 </div>
 
-                <!-- 1996 DIALUP MODEM VS FPHP CALLOUT -->
+                <!-- 90'S DIALUP MODEM VS FPHP CALLOUT -->
                 <table border="2" cellpadding="8" cellspacing="0" width="100%" bgcolor="#ffffcc" style="border: 2px inset #ffffff; margin-bottom: 1.25rem; font-family: 'Times New Roman', serif;">
                     <tr>
                         <td width="55" align="center" valign="middle" bgcolor="#ffcc00" style="font-size: 32px;">📟</td>
                         <td>
                             <b style="color: #000080; font-family: 'MS Sans Serif', Tahoma; font-size:13px;">SAYIN CYBER-YOLCU, HOŞ GELDİNİZ:</b><br>
-                            Şu anda 1996 yılında tasarlanmış en hızlı World Wide Web sayfasındasınız! 
-                            Normalde 28.8k veya 33.6k USRobotics çevirmeli modemle bir sayfanın yüklenmesi <strong>45 saniye (45.000.000 mikro-saniye)</strong> sürer ve telefon hattını meşgul eder. 
+                            Şu anda 90'lar ruhuyla tasarlanmış en hızlı World Wide Web sayfasındasınız! 
+                            Normalde 28.8k veya 33.6k çevirmeli modemle bir sayfanın yüklenmesi <strong>45 saniye (45.000.000 mikro-saniye)</strong> sürer ve telefon hattını meşgul eder. 
                             Ancak FPHP motorunun <strong>L1 Shared Memory ve OPcache Transmutasyonu</strong> sayesinde bu sayfa size 
                             <strong style="color: #008000;">0.05 milisaniyede (50 mikro-saniye)</strong> ulaşmaktadır! 
-                            <span style="color: #cc0000; font-weight: bold;">(America Online / AOL'den 900.000 kat daha hızlı!)</span>
+                            <span style="color: #cc0000; font-weight: bold;">(Eski çevirmeli ağ sağlayıcılarından tam 900.000 kat daha hızlı!)</span>
                         </td>
                     </tr>
                 </table>
@@ -1043,10 +1083,10 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
                     <div class="panel-title">⚡ Canlı Tepki Hızı Testi</div>
                     <div class="btn-group">
                         <button class="btn btn-primary" onclick="testLiveFetch(false)">
-                            <?= $theme === '1996' ? '⚡ Işık Hızında İndir (0.05µs HIT)' : '⚡ Önbellekli Çağır (HIT Testi)' ?>
+                            <?= $theme === '90s' ? '⚡ Işık Hızında İndir (0.05µs HIT)' : '⚡ Önbellekli Çağır (HIT Testi)' ?>
                         </button>
                         <button class="btn btn-danger" onclick="testLiveFetch(true)">
-                            <?= $theme === '1996' ? '🐌 28.8k Modem Simülasyonu (MISS)' : '⚠️ Önbelleksiz Çağır (Yavaş MySQL Testi)' ?>
+                            <?= $theme === '90s' ? '🐌 28.8k Modem Simülasyonu (MISS)' : '⚠️ Önbelleksiz Çağır (Yavaş MySQL Testi)' ?>
                         </button>
                     </div>
                 </div>
@@ -1454,34 +1494,34 @@ require_once __DIR__ . '/fphp-bootstrap.php';
             </div>
         <?php endif; ?>
 
-        <?php if ($theme === '1996'): ?>
-            <!-- RETRO 1996 WEB BADGES & FOOTER -->
+        <?php if ($theme === '90s'): ?>
+            <!-- RETRO 90'S WEB BADGES & FOOTER -->
             <div class="retro-badges">
-                <div class="retro-badge-box">🧭 Netscape Now 3.0</div>
+                <div class="retro-badge-box">🧭 Web 1.0 Uyumlu</div>
                 <div class="retro-badge-box">💻 Best Viewed 800x600</div>
-                <div class="retro-badge-box">📝 Made with Notepad</div>
-                <div class="retro-badge-box">🛡️ CyberPatrol Approved</div>
+                <div class="retro-badge-box">📝 Düz Metin Editörü ile Kodlandı</div>
+                <div class="retro-badge-box">🛡️ CyberSafe Onaylı</div>
                 <div class="retro-badge-box">✅ Valid HTML 3.2</div>
-                <div class="retro-badge-box">⚡ Intel Pentium Pro 200MHz</div>
+                <div class="retro-badge-box">⚡ Çift Çekirdekli Donanım Hızlandırma</div>
             </div>
 
             <div style="text-align:center; padding:12px; font-size:12px; color:#555; background:#c0c0c0; border-top:1px solid #808080;">
                 <p style="margin-bottom:6px;">
-                    <strong>Webmaster:</strong> Tolgahan Acar &lt;<a href="mailto:tolgahan@geocities.com">tolgahan@geocities.com</a>&gt; | 
-                    <strong>IRC:</strong> #fphp @ EFNet | <strong>ICQ UIN:</strong> 1996050
+                    <strong>Webmaster:</strong> Tolgahan Acar &lt;<a href="mailto:webmaster@retro-web.local">webmaster@retro-web.local</a>&gt; | 
+                    <strong>IRC:</strong> #fphp @ EFNet | <strong>ICQ:</strong> 9005090
                 </p>
                 <p style="margin-bottom:6px;">
                     <a href="javascript:alert('Ziyaretçi defteri henüz boş! İlk imzalayan siz oldunuz.')">[ 📖 Ziyaretçi Defterini İmzala ]</a> | 
                     <a href="javascript:alert('WebRing sonraki siteye yönlendiriliyor...')">[ 🌐 WebRing: &laquo; Önceki | Rastgele | Sonraki &raquo; ]</a>
                 </p>
                 <p style="font-size:11px; color:#777;">
-                    Bu sayfa Microsoft FrontPage '97 ve Notepad ile yazılmıştır. Telif Hakkı &copy; 1996 FPHP Cyber-Lab. Tüm Hakları Saklıdır.
+                    Bu sayfa basit bir metin editörü ve ham HTML ile yazılmıştır. Telif Hakkı &copy; 90's FPHP Cyber-Lab. Tüm Hakları Saklıdır.
                 </p>
             </div>
 
             </div> <!-- /.retro-content-wrap -->
 
-            <!-- WINDOWS 95 STATUS BAR -->
+            <!-- 90'LAR KLASİK DURUM ÇUBUĞU -->
             <div class="win-statusbar">
                 <div class="win-status-pane" style="flex:1;">🌐 Belge: Tamamlandı (0.05 ms / 50 µs)</div>
                 <div class="win-status-pane">🔐 Güvenlik: 40-bit RC4</div>
