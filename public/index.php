@@ -43,7 +43,7 @@ if (!empty($action)) {
     try {
         if ($action === 'clear_all') {
             FphpCache::clear();
-            $notice = 'Tüm katmanlardaki önbellek (RAM, Bytecode ve Disk) tamamen temizlendi.';
+            $notice = 'Tüm katmanlardaki önbellek (L1 RAM, Bytecode ve Disk) tamamen temizlendi.';
         } elseif ($action === 'prune_expired') {
             $pruned = FphpCache::prune();
             $notice = "Süresi dolmuş {$pruned['total_deleted']} adet dosya silindi (" . Metrics::formatBytes($pruned['total_freed_bytes']) . " alan boşaltıldı).";
@@ -692,22 +692,28 @@ require_once __DIR__ . '/fphp-bootstrap.php';
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>L0 Bytecode</strong></td>
-                                    <td>OPcache C-RAM</td>
+                                    <td><strong>L1 Shared Memory</strong></td>
+                                    <td>APCu C-RAM Fast-Path</td>
+                                    <td class="mono">0.05 - 0.2 µs</td>
+                                    <td><span class="pill <?= function_exists('apcu_fetch') ? 'pill-green' : 'pill-gray' ?>"><?= function_exists('apcu_fetch') ? 'AKTİF' : 'DEVRE DIŞI' ?></span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>L2 Bytecode Store</strong></td>
+                                    <td>OPcache C-RAM Transmutasyon</td>
                                     <td class="mono">0.8 - 1.5 µs</td>
                                     <td><span class="pill pill-green">AKTİF</span></td>
                                 </tr>
                                 <tr>
-                                    <td><strong>L1 Memory</strong></td>
-                                    <td>APCu Shared RAM</td>
-                                    <td class="mono">1 - 5 µs</td>
-                                    <td><span class="pill <?= ($driverStats['apcu_enabled'] ?? false) ? 'pill-green' : 'pill-gray' ?>"><?= ($driverStats['apcu_enabled'] ?? false) ? 'AKTİF' : 'DEVRE DIŞI' ?></span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>L2 Disk Stream</strong></td>
-                                    <td>Kernel Zero-Copy</td>
+                                    <td><strong>L3 Disk Stream</strong></td>
+                                    <td>NVMe Kernel Zero-Copy</td>
                                     <td class="mono">25 - 45 µs</td>
                                     <td><span class="pill pill-green">AKTİF</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>L4 Remote Store</strong></td>
+                                    <td>Redis Kümesi / Dağıtık Ağ</td>
+                                    <td class="mono">500 - 1500 µs</td>
+                                    <td><span class="pill pill-gray">İSTEĞE BAĞLI</span></td>
                                 </tr>
                             </tbody>
                         </table>

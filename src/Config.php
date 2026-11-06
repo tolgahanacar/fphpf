@@ -73,7 +73,8 @@ class Config
                 ],
                 'send_headers' => true,
                 'etag_enabled' => true,
-                'bytecode_cache' => true, // OPcache Bytecode Transmutation: compiles pages into executable C-memory objects
+                'l1_shm_cache' => true,   // Tier 1: L1 Shared Memory (APCu) Fast-Path: sub-microsecond direct C-RAM serving
+                'bytecode_cache' => true, // Tier 2: OPcache Bytecode Transmutation: compiles pages into executable C-memory objects
                 'hole_punching' => true,  // Streaming dynamic holes / island architecture for personalized slots
                 'stale_while_revalidate' => 60,
                 'stale_if_error' => true, // RFC 5861 Disaster recovery: serve stale cache on backend 500 error / crash

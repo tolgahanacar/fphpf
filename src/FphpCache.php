@@ -303,22 +303,24 @@ class FphpCache
     }
 
     /**
-     * Delete an item.
+     * Delete an item across all storage tiers.
      */
     public static function delete(string $key): bool
     {
         $inst = self::instance();
+        $inst->pageCache->getL1Store()->delete($key);
         (new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir')))->delete($key);
         (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->delete($key);
         return $inst->driver->delete($key);
     }
 
     /**
-     * Clear all cached data across all storage layers.
+     * Clear all cached data across all storage layers (L1, Bytecode, Stream, Driver).
      */
     public static function clear(): bool
     {
         $inst = self::instance();
+        $inst->pageCache->getL1Store()->clear();
         (new \Fphp\FullPage\BytecodeStore($inst->config->get('cache_dir')))->clear();
         (new \Fphp\FullPage\StreamStore($inst->config->get('cache_dir')))->clear();
         return $inst->driver->clear();
@@ -504,6 +506,14 @@ class FphpCache
     public static function setHoleValue(string $slot, string $value): void
     {
         \Fphp\Fragment\HolePuncher::set($slot, $value);
+    }
+
+    /**
+     * Get active L1MemoryStore (Shared C-RAM Fast-Path) instance.
+     */
+    public static function getL1Store(): \Fphp\FullPage\L1MemoryStore
+    {
+        return self::instance()->pageCache->getL1Store();
     }
 
     /**

@@ -57,6 +57,7 @@ class CacheTest
         $this->testSpeculationRulesBridge();
         $this->testReactiveLineageGraph();
         $this->testPidController();
+        $this->testL1MemoryStore();
 
         echo "\n--------------------------------------------\n";
         echo "Results: {$this->passed} PASSED, {$this->failed} FAILED\n";
@@ -903,6 +904,54 @@ XML;
         // 6. Facade checks
         $this->assert('FphpCache::adaptSwr returns integer', is_int(\Fphp\FphpCache::adaptSwr(60)));
         $this->assert('FphpCache::pidTelemetry returns telemetry array', is_array(\Fphp\FphpCache::pidTelemetry()));
+    }
+
+    private function testL1MemoryStore(): void
+    {
+        echo "\nTesting L1 Shared Memory (APCu / C-RAM) Fast-Path Store...\n";
+        $store = new \Fphp\FullPage\L1MemoryStore('test_l1:');
+        // Ensure simulation mode is active for CLI determinism if APCu CLI disabled
+        if (!$store->isAvailable()) {
+            $store->setSimulationMode(true);
+        }
+
+        $html = '<!DOCTYPE html><html><body><h1>L1 C-RAM Page</h1><!--fphp:hole:time-->99:99<!--/fphp:hole:time--></body></html>';
+        $etag = '"l1_etag_test"';
+        $stored = $store->store('page_home', $html, 'text/html; charset=UTF-8', $etag, 1800, 60);
+
+        $this->assert('L1MemoryStore stores pre-rendered page in shared memory', $stored);
+        $this->assert('L1MemoryStore has() returns true for fresh page', $store->has('page_home'));
+
+        $raw = $store->get('page_home');
+        $this->assert('L1MemoryStore get() returns valid entry array', is_array($raw) && isset($raw['meta'], $raw['content']));
+        $this->assert('L1MemoryStore content matches original HTML', ($raw['content'] ?? '') === $html);
+        $this->assert('L1MemoryStore meta tracks tier as l1_apcu_shm', ($raw['meta']['tier'] ?? '') === 'l1_apcu_shm');
+
+        // Test dynamic hole punch substitution in L1 execution
+        \Fphp\Fragment\HolePuncher::set('time', '12:34:56');
+        ob_start();
+        $executed = $store->execute('page_home', 42.0, fn($c) => \Fphp\Fragment\HolePuncher::renderHoles($c), false);
+        $output = ob_get_clean();
+
+        $this->assert('L1MemoryStore execute() returns true without script termination', $executed);
+        $this->assert('L1MemoryStore output contains substituted hole value', str_contains($output, '12:34:56'));
+        $this->assert('L1MemoryStore output eliminates hole comments', !str_contains($output, '<!--fphp:hole:'));
+
+        // Test stale retrieval
+        $stale = $store->retrieveStale('page_home');
+        $this->assert('L1MemoryStore retrieveStale returns payload', is_array($stale) && ($stale['content_raw'] ?? '') === $html);
+
+        // Test deletion & clear
+        $this->assert('L1MemoryStore delete removes specific key', $store->delete('page_home'));
+        $this->assert('L1MemoryStore has() returns false after delete', !$store->has('page_home'));
+
+        $store->store('page_test_clear', '<h1>Clear me</h1>', 'text/html', '"c1"', 300);
+        $store->clear();
+        $this->assert('L1MemoryStore clear() flushes memory store', !$store->has('page_test_clear'));
+
+        // Diagnostics telemetry
+        $diagnostics = $store->getDiagnostics();
+        $this->assert('L1MemoryStore produces diagnostics array', is_array($diagnostics) && isset($diagnostics['active'], $diagnostics['memory_type']));
     }
 }
 

@@ -23,6 +23,7 @@ class PageCache
     protected CacheDriverInterface $driver;
     protected RuleEngine $ruleEngine;
     protected StatsTracker $stats;
+    protected L1MemoryStore $l1Store;
     protected StreamStore $streamStore;
     protected BytecodeStore $bytecodeStore;
     protected ?\Fphp\Warmer\MarkovWarmer $markovWarmer = null;
@@ -38,6 +39,7 @@ class PageCache
         $this->driver = $driver;
         $this->stats = $stats;
         $this->ruleEngine = new RuleEngine($config);
+        $this->l1Store = new L1MemoryStore($this->config->get('prefix', 'fphp:') . 'page_l1:');
         $this->streamStore = new StreamStore($config->get('cache_dir'));
         $this->bytecodeStore = new BytecodeStore($config->get('cache_dir'));
 
@@ -106,7 +108,18 @@ class PageCache
 
         $elapsedUs = Metrics::stopMicroseconds('fphp_fpc');
 
-        // 1. OPcache Bytecode Transmutation Engine (0.8 - 1.5 µs C-Memory Execution)
+        // 1. Tier 1: L1 Shared Memory Fast-Path (0.05 - 0.2 µs Direct C-RAM Serving)
+        if ($this->config->get('page_cache.l1_shm_cache', true) && $this->l1Store->isAvailable()) {
+            $holeFilter = $this->config->get('page_cache.hole_punching', true)
+                ? fn(string $html) => \Fphp\Fragment\HolePuncher::renderHoles($html)
+                : null;
+            if ($this->l1Store->execute($key, $elapsedUs, $holeFilter)) {
+                $this->stats->recordHit($key, $elapsedUs, 'l1_apcu_shm');
+                return true;
+            }
+        }
+
+        // 2. Tier 2: OPcache Bytecode Transmutation Engine (0.8 - 1.5 µs C-Memory Execution)
         if ($this->config->get('page_cache.bytecode_cache', true)) {
             $holeFilter = $this->config->get('page_cache.hole_punching', true)
                 ? fn(string $html) => \Fphp\Fragment\HolePuncher::renderHoles($html)
@@ -117,7 +130,7 @@ class PageCache
             }
         }
 
-        // 2. Zero-Serialization Kernel Stream (25 - 50 µs)
+        // 3. Tier 3: Zero-Serialization Kernel Stream (25 - 50 µs)
         if ($this->streamStore->stream($key, $elapsedUs)) {
             $this->stats->recordHit($key, $elapsedUs, 'kernel_stream');
             return true;
@@ -380,15 +393,20 @@ class PageCache
             'grace_until' => $now + $ttl + $graceWindow
         ];
 
-        // 1. Store in OPcache Bytecode Transmutation Engine (0.8 µs execution)
+        // 1. Store in Tier 1: L1 Shared Memory Fast-Path (0.05 µs Direct C-RAM)
+        if ($this->config->get('page_cache.l1_shm_cache', true) && $this->l1Store->isAvailable()) {
+            $this->l1Store->store($this->currentKey, $processed, $contentType, $etag, $ttl, $graceWindow);
+        }
+
+        // 2. Store in Tier 2: OPcache Bytecode Transmutation Engine (0.8 µs execution)
         if ($this->config->get('page_cache.bytecode_cache', true)) {
             $this->bytecodeStore->store($this->currentKey, $processed, $contentType, $etag, $ttl);
         }
 
-        // 2. Store in Zero-Copy Stream Store (for direct socket streaming)
+        // 3. Store in Tier 3: Zero-Copy Stream Store (for direct socket streaming)
         $this->streamStore->store($this->currentKey, $processed, $contentType, $etag, $ttl);
 
-        // 3. Store in standard driver
+        // 4. Store in standard driver
         $this->driver->set($this->currentKey, $cacheEntry, $ttl + $graceWindow);
 
         // 4. Associate active Reactive Lineage dependencies (if context active)
@@ -442,6 +460,7 @@ class PageCache
 
         $purgeAll = ($_SERVER['HTTP_X_PURGE_ALL'] ?? '') === '1' || isset($_GET['purge_all']);
         if ($purgeAll) {
+            $this->l1Store->clear();
             $this->bytecodeStore->clear();
             $this->streamStore->clear();
             $this->driver->clear();
@@ -457,6 +476,7 @@ class PageCache
         }
 
         $key = $this->ruleEngine->generateCacheKey();
+        $this->l1Store->delete($key);
         $this->bytecodeStore->delete($key);
         $this->streamStore->delete($key);
         $this->driver->delete($key);
@@ -479,6 +499,11 @@ class PageCache
      */
     public function retrieveStaleEntry(string $key): ?array
     {
+        $staleL1 = $this->l1Store->retrieveStale($key);
+        if ($staleL1 !== null && !empty($staleL1['content_raw'])) {
+            return $staleL1;
+        }
+
         $staleBytecode = $this->bytecodeStore->retrieveStale($key);
         if ($staleBytecode !== null && !empty($staleBytecode['content_raw'])) {
             return $staleBytecode;
@@ -500,6 +525,11 @@ class PageCache
         }
 
         return null;
+    }
+
+    public function getL1Store(): L1MemoryStore
+    {
+        return $this->l1Store;
     }
 
     public function getBytecodeStore(): BytecodeStore
@@ -528,10 +558,11 @@ class PageCache
     }
 
     /**
-     * Purge a specific cache key from all storage tiers (Bytecode, Stream, Driver).
+     * Purge a specific cache key from all storage tiers (L1, Bytecode, Stream, Driver).
      */
     public function purgeKey(string $key): void
     {
+        $this->l1Store->delete($key);
         $this->bytecodeStore->delete($key);
         $this->streamStore->delete($key);
         $this->driver->delete($key);
