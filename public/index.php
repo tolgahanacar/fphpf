@@ -17,6 +17,10 @@ use Fphp\Profiler\Metrics;
 // Eğer URL'de özel bir yönetim sayfası veya eylem yoksa FPHP Full Page Microcache devreye girer
 $page = $_GET['page'] ?? 'demo';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+$theme = $_GET['theme'] ?? $_COOKIE['fphp_theme'] ?? '1996';
+if (isset($_GET['theme'])) {
+    @setcookie('fphp_theme', $theme, time() + 86400 * 30, '/');
+}
 
 // Sadece normal demo isteklerinde page cache tam devrede olsun
 if ($page === 'demo' && empty($action) && empty($_GET['fphp_bypass'])) {
@@ -488,18 +492,465 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             overflow-x: auto;
             white-space: pre-wrap;
         }
+
+        /* ============================================================== */
+        /* 1996 NETSCAPE NAVIGATOR & GEOCITIES RETRO THEME                */
+        /* ============================================================== */
+        body.theme-1996 {
+            background-color: #008080 !important; /* Windows 95 Teal Desktop */
+            background-image: radial-gradient(rgba(0, 0, 0, 0.15) 15%, transparent 16%) !important;
+            background-size: 6px 6px !important;
+            color: #000000 !important;
+            font-family: "Times New Roman", Times, Georgia, serif !important;
+            font-size: 14px !important;
+            padding: 10px !important;
+        }
+
+        body.theme-1996 a { color: #0000ff !important; text-decoration: underline !important; }
+        body.theme-1996 a:visited { color: #800080 !important; }
+        body.theme-1996 a:active { color: #ff0000 !important; }
+
+        body.theme-1996 .browser-window {
+            max-width: 1020px;
+            margin: 0 auto;
+            background: #c0c0c0;
+            border: 3px outset #ffffff;
+            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.6);
+        }
+
+        body.theme-1996 .win-titlebar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: #ffffff;
+            padding: 3px 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            user-select: none;
+            border-bottom: 1px solid #000;
+        }
+
+        body.theme-1996 .win-controls {
+            display: flex;
+            gap: 2px;
+        }
+        body.theme-1996 .win-btn {
+            width: 16px;
+            height: 14px;
+            background: #c0c0c0;
+            border: 1px outset #ffffff;
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 12px;
+            text-align: center;
+            color: #000000;
+            cursor: pointer;
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        body.theme-1996 .win-menubar {
+            background: #c0c0c0;
+            border-bottom: 1px solid #808080;
+            padding: 3px 8px;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            display: flex;
+            gap: 12px;
+            color: #000;
+        }
+
+        body.theme-1996 .win-toolbar {
+            background: #c0c0c0;
+            border-bottom: 2px groove #ffffff;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        body.theme-1996 .win-tool-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        body.theme-1996 .win-tool-btn {
+            background: #c0c0c0;
+            border: 2px outset #ffffff;
+            padding: 2px 7px;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000 !important;
+            text-decoration: none !important;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            box-shadow: 1px 1px 0px #000;
+        }
+        body.theme-1996 .win-tool-btn:active {
+            border: 2px inset #ffffff;
+        }
+
+        body.theme-1996 .win-urlbar {
+            background: #c0c0c0;
+            border-bottom: 2px groove #ffffff;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        body.theme-1996 .win-url-input {
+            flex: 1;
+            background: #ffffff;
+            border: 2px inset #ffffff;
+            padding: 2px 6px;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
+            color: #000;
+        }
+
+        body.theme-1996 .retro-content-wrap {
+            background: #ffffff;
+            border: 2px inset #ffffff;
+            margin: 8px;
+            padding: 16px;
+            color: #000;
+        }
+
+        body.theme-1996 .tab-bar {
+            background: #c0c0c0 !important;
+            border-bottom: 2px groove #ffffff !important;
+            padding: 6px 8px 0 8px !important;
+            gap: 3px !important;
+        }
+        body.theme-1996 .tab-item {
+            background: #c0c0c0 !important;
+            border: 2px outset #ffffff !important;
+            border-bottom: none !important;
+            border-radius: 4px 4px 0 0 !important;
+            color: #000000 !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            font-size: 11px !important;
+            font-weight: bold !important;
+            padding: 4px 10px !important;
+            box-shadow: 1px 1px 0px #000;
+        }
+        body.theme-1996 .tab-item.active {
+            background: #ffffff !important;
+            border-bottom: 2px solid #ffffff !important;
+            color: #000080 !important;
+            margin-bottom: -2px !important;
+        }
+
+        body.theme-1996 .btn {
+            background: #c0c0c0 !important;
+            border: 2px outset #ffffff !important;
+            color: #000000 !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            font-size: 12px !important;
+            font-weight: bold !important;
+            border-radius: 0 !important;
+            box-shadow: 1px 1px 0px #000000 !important;
+            padding: 4px 12px !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+        }
+        body.theme-1996 .btn:active {
+            border: 2px inset #ffffff !important;
+        }
+        body.theme-1996 .btn-primary {
+            background: #000080 !important;
+            color: #ffff00 !important;
+            border: 2px outset #ffffff !important;
+        }
+        body.theme-1996 .btn-danger {
+            background: #800000 !important;
+            color: #ffffff !important;
+            border: 2px outset #ffffff !important;
+        }
+
+        body.theme-1996 .panel {
+            background: #e4e4e4 !important;
+            border: 2px groove #ffffff !important;
+            border-radius: 0 !important;
+            margin-bottom: 1.25rem !important;
+        }
+        body.theme-1996 .panel-header {
+            background: #c0c0c0 !important;
+            border-bottom: 2px groove #ffffff !important;
+        }
+        body.theme-1996 .panel-title {
+            color: #000080 !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            font-weight: bold !important;
+            font-size: 12px !important;
+        }
+        body.theme-1996 .panel-body {
+            color: #000000 !important;
+        }
+
+        body.theme-1996 .kpi-card {
+            background: #ffffff !important;
+            border: 2px inset #ffffff !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+        body.theme-1996 .kpi-label {
+            color: #000080 !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            font-weight: bold !important;
+        }
+        body.theme-1996 .kpi-val {
+            font-family: "Courier New", monospace !important;
+            font-weight: bold !important;
+            color: #008000 !important;
+        }
+        body.theme-1996 .kpi-sub {
+            color: #555555 !important;
+            font-family: "Times New Roman", Times, serif !important;
+        }
+
+        body.theme-1996 .code-snippet {
+            background: #000000 !important;
+            color: #00ff00 !important;
+            border: 3px inset #808080 !important;
+            border-radius: 0 !important;
+            font-family: "Lucida Console", "Courier New", monospace !important;
+            font-size: 13px !important;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2) !important;
+        }
+
+        body.theme-1996 .table {
+            border: 2px inset #ffffff !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
+        body.theme-1996 .table th {
+            background: #000080 !important;
+            color: #ffffff !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            border: 1px solid #c0c0c0 !important;
+        }
+        body.theme-1996 .table td {
+            border: 1px solid #dcdcdc !important;
+            color: #000000 !important;
+        }
+
+        body.theme-1996 .explainer {
+            background: #ffffcc !important;
+            border: 2px inset #ffffff !important;
+            border-radius: 0 !important;
+            color: #000000 !important;
+        }
+        body.theme-1996 .explainer-title {
+            color: #000080 !important;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif !important;
+            font-size: 13px !important;
+        }
+        body.theme-1996 .explainer-text {
+            color: #000000 !important;
+        }
+
+        body.theme-1996 .win-statusbar {
+            background: #c0c0c0;
+            border-top: 2px groove #ffffff;
+            padding: 3px 6px;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            display: flex;
+            gap: 6px;
+        }
+        body.theme-1996 .win-status-pane {
+            border: 1px inset #ffffff;
+            padding: 1px 6px;
+            background: #c0c0c0;
+        }
+
+        /* RETRO SPECIAL GRAPHICS */
+        .blink {
+            animation: retroBlink 0.75s step-start infinite;
+        }
+        @keyframes retroBlink {
+            50% { opacity: 0; }
+        }
+
+        .rainbow-hr {
+            height: 4px;
+            background: linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet);
+            border: none;
+            margin: 12px 0;
+        }
+
+        .hazard-stripe {
+            background: repeating-linear-gradient(45deg, #ffcc00, #ffcc00 12px, #000000 12px, #000000 24px);
+            height: 14px;
+            border: 1px solid #000;
+            margin: 10px 0;
+        }
+
+        .retro-counter {
+            display: inline-flex;
+            align-items: center;
+            background: #000;
+            padding: 3px 6px;
+            border: 2px inset #ffffff;
+            font-family: "Courier New", monospace;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        .retro-counter span {
+            background: #111;
+            color: #00ff00;
+            border: 1px solid #333;
+            padding: 1px 5px;
+            margin: 0 1px;
+            font-size: 15px;
+        }
+
+        .retro-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 1.5rem;
+            padding: 12px;
+            border-top: 2px groove #ffffff;
+            background: #e4e4e4;
+        }
+        .retro-badge-box {
+            border: 2px outset #ffffff;
+            background: #c0c0c0;
+            padding: 3px 8px;
+            font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000000;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 1px 1px 0px #000;
+        }
+
+        .theme-pill-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
     </style>
 </head>
-<body>
+<body class="<?= $theme === '1996' ? 'theme-1996' : 'theme-modern' ?>">
 
-    <!-- TOP UNIFIED BAR -->
+<?php if ($theme === '1996'): ?>
+    <!-- ============================================================== -->
+    <!-- 1996 NETSCAPE NAVIGATOR & WINDOWS 95 RETRO BROWSER SHELL       -->
+    <!-- ============================================================== -->
+    <div class="browser-window">
+        <!-- WINDOW TITLE BAR -->
+        <div class="win-titlebar">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span>🧭</span>
+                <span>Netscape Navigator Gold 3.01 - [FPHP HYPER-CACHE '96 - http://www.geocities.com/siliconvalley/fphp96]</span>
+            </div>
+            <div class="win-controls">
+                <div class="win-btn">_</div>
+                <div class="win-btn">口</div>
+                <div class="win-btn">✕</div>
+            </div>
+        </div>
+
+        <!-- WINDOW MENUBAR -->
+        <div class="win-menubar">
+            <span><u>D</u>osya</span>
+            <span><u>D</u>üzen</span>
+            <span><u>G</u>örünüm</span>
+            <span><u>G</u>it</span>
+            <span><u>Y</u>er İmleri</span>
+            <span><u>S</u>eçenekler</span>
+            <span><u>D</u>izin</span>
+            <span><u>P</u>encere</span>
+            <span><u>Y</u>ardım</span>
+        </div>
+
+        <!-- WINDOW TOOLBAR -->
+        <div class="win-toolbar">
+            <div class="win-tool-group">
+                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">⬅ Geri</a>
+                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">➡ İleri</a>
+                <a href="index.php?page=demo&theme=1996" class="win-tool-btn">🏠 Ana Sayfa</a>
+                <a href="javascript:location.reload()" class="win-tool-btn">🔄 Yenile</a>
+                <a href="javascript:window.print()" class="win-tool-btn">🖨️ Yazdır</a>
+                <a href="javascript:void(0)" class="win-tool-btn" onclick="alert('FPHP C-RAM Önbelleği Durdurulamaz!')">🛑 Durdur</a>
+            </div>
+            <div class="win-tool-group">
+                <span style="font-family:'MS Sans Serif', Tahoma; font-size:11px; font-weight:bold;">Görünüm:</span>
+                <a href="?page=<?= $page ?>&theme=1996" class="win-tool-btn" style="background:#000080; color:#ffff00 !important;">📺 1996 Netscape</a>
+                <a href="?page=<?= $page ?>&theme=modern" class="win-tool-btn">🚀 2026 Modern Cyber</a>
+            </div>
+        </div>
+
+        <!-- WINDOW URL BAR -->
+        <div class="win-urlbar">
+            <span>Konum (Location):</span>
+            <input type="text" class="win-url-input" value="http://www.geocities.com/siliconvalley/fphp96/speed.htm?fphp_l1=active" readonly>
+            <button class="win-tool-btn" onclick="location.reload()">Neyin Var?</button>
+        </div>
+
+        <!-- 1996 SCROLLING MARQUEE TICKER -->
+        <marquee scrollamount="6" bgcolor="#000080" style="color:#ffff00; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; padding:4px; border:2px inset #ffffff; margin-bottom:4px;">
+            ⚡⚡⚡ DİKKAT CYBER-SÖRFÇÜLER! ⚡ 1996 YILININ İLK 0.05µs (MİKRO-SANİYE) SÜPER-ÖNBELLEK MOTORUNA HOŞ GELDİNİZ! ⚡ ÇEVİRMELİ 28.8K MODEMLERİ TARİHE GÖMEN ZEND OPCACHE VE L1 C-RAM TEKNOLOJİSİ! ⚡ EN İYİ NETSCAPE 3.0 GOLD VE 800x600 ÇÖZÜNÜRLÜKTE GÖRÜNTÜLENİR! ⚡⚡⚡
+        </marquee>
+
+        <!-- NOTIFICATION -->
+        <?php if (!empty($notice)): ?>
+            <div class="alert <?= $noticeType ?>" style="margin:8px 8px 0 8px;">
+                <?= htmlspecialchars($notice) ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- TABS (RETRO 1996 STYLE) -->
+        <nav class="tab-bar">
+            <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
+                🏠 AnaSayfa.htm
+            </a>
+            <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
+                📊 Telemetri.log
+            </a>
+            <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
+                📁 Dosyalar.dir (<?= count($cacheFiles) ?>)
+            </a>
+            <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
+                🧠 YapayZeka.sys
+            </a>
+            <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
+                ⚡ Benchmark.exe
+            </a>
+        </nav>
+
+        <div class="retro-content-wrap">
+<?php else: ?>
+    <!-- TOP UNIFIED BAR (MODERN 2026 THEME) -->
     <header class="top-nav">
         <div class="brand">
             <span>⚡ FPHP ENGINE</span>
             <span class="brand-pill">v<?= FphpCache::VERSION ?></span>
         </div>
-        <div style="font-size: 12px; color: var(--text-muted);">
-            Mikro-Saniye PHP Hızlandırma & Önbellek Sistemi
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="theme-pill-switch">
+                <a href="?page=<?= $page ?>&theme=1996" class="btn">📺 1996 Retro Web</a>
+                <a href="?page=<?= $page ?>&theme=modern" class="btn btn-primary">🚀 2026 Modern Cyber</a>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted);">
+                Mikro-Saniye PHP Hızlandırma & Önbellek Sistemi
+            </div>
         </div>
     </header>
 
@@ -512,48 +963,91 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             </div>
         <?php endif; ?>
 
-        <!-- UNIFIED NAVIGATION TABS -->
+        <!-- UNIFIED NAVIGATION TABS (MODERN 2026 THEME) -->
         <nav class="tab-bar">
-            <a href="index.php?page=demo" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
+            <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
                 🏠 Hızlı Başlangıç ve Canlı Demo
             </a>
-            <a href="index.php?page=stats" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
+            <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
                 📊 Canlı Telemetri ve İstatistikler
             </a>
-            <a href="index.php?page=files" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
+            <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
                 📁 Önbellek Dosya Gezgini (<?= count($cacheFiles) ?>)
             </a>
-            <a href="index.php?page=intelligence" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
+            <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
                 🧠 Akıllı Zeka Motorları (PID & Soyağacı)
             </a>
-            <a href="index.php?page=benchmark" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
+            <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
                 ⚡ Canlı Hız Kıyaslama (Benchmark)
             </a>
         </nav>
+<?php endif; ?>
 
         <?php if ($page === 'demo'): ?>
             <!-- ============================================================== -->
             <!-- SAYFA 1: HIZLI BAŞLANGIÇ VE CANLI TEST                         -->
             <!-- ============================================================== -->
-            <div class="explainer">
-                <div style="font-size: 1.5rem; line-height: 1;">💡</div>
-                <div>
-                    <div class="explainer-title">FPHP Cache Nedir ve Ne Yapar?</div>
-                    <div class="explainer-text">
-                        Normalde bir PHP sayfası her açıldığında yüzlerce dosya yüklenir, veritabanına bağlanılır ve sunucu yorulur. 
-                        <strong>FPHP Cache</strong>, sayfaları bellekte (C-RAM / OPcache) hazır tutar. İstek geldiğinde veritabanına hiç dokunmadan 
-                        sayfayı <strong>0.1 milisaniyede</strong> doğrudan sunar. Siteniz 10.000 kişi aynı anda gelse bile kilitlenmez.
+            <?php if ($theme === '1996'): ?>
+                <div style="text-align:center; margin-bottom:1rem;">
+                    <div class="hazard-stripe"></div>
+                    <h1 style="font-family:'Impact', 'Arial Black', sans-serif; font-size: 2.3rem; color: #000080; text-shadow: 2px 2px #ffff00, 3px 3px #ff0000; margin: 0.5rem 0; letter-spacing:1px;">
+                        ★★★ FPHP HYPER-CACHE '96 ★★★
+                    </h1>
+                    <p style="font-family:'Comic Sans MS', cursive, sans-serif; font-size: 14px; color: #800000; margin-bottom:6px;">
+                        <b>"DÜNYANIN EN HIZLI KİŞİSEL ANA SAYFASI & 0.05µs C-RAM HIZLANDIRICISI"</b>
+                    </p>
+                    <div style="margin: 6px 0;">
+                        <span class="blink" style="color:#cc0000; font-family:'Courier New', monospace; font-weight:bold; font-size:13px; background:#ffff00; padding:2px 8px; border:1px solid #cc0000;">
+                            [ 🔥 DİKKAT: 28.8K ÇEVİRMELİ MODEMLER İÇİN L1 C-RAM BYPASS TEKNOLOJİSİ DEVREDE! 🔥 ]
+                        </span>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <div class="retro-counter">
+                            SAYFA ZİYARET SAYACI: <span>0</span><span>0</span><span>4</span><span>2</span><span>8</span><span>9</span>
+                        </div>
+                    </div>
+                    <div class="rainbow-hr"></div>
+                </div>
+
+                <!-- 1996 DIALUP MODEM VS FPHP CALLOUT -->
+                <table border="2" cellpadding="8" cellspacing="0" width="100%" bgcolor="#ffffcc" style="border: 2px inset #ffffff; margin-bottom: 1.25rem; font-family: 'Times New Roman', serif;">
+                    <tr>
+                        <td width="55" align="center" valign="middle" bgcolor="#ffcc00" style="font-size: 32px;">📟</td>
+                        <td>
+                            <b style="color: #000080; font-family: 'MS Sans Serif', Tahoma; font-size:13px;">SAYIN CYBER-YOLCU, HOŞ GELDİNİZ:</b><br>
+                            Şu anda 1996 yılında tasarlanmış en hızlı World Wide Web sayfasındasınız! 
+                            Normalde 28.8k veya 33.6k USRobotics çevirmeli modemle bir sayfanın yüklenmesi <strong>45 saniye (45.000.000 mikro-saniye)</strong> sürer ve telefon hattını meşgul eder. 
+                            Ancak FPHP motorunun <strong>L1 Shared Memory ve OPcache Transmutasyonu</strong> sayesinde bu sayfa size 
+                            <strong style="color: #008000;">0.05 milisaniyede (50 mikro-saniye)</strong> ulaşmaktadır! 
+                            <span style="color: #cc0000; font-weight: bold;">(America Online / AOL'den 900.000 kat daha hızlı!)</span>
+                        </td>
+                    </tr>
+                </table>
+            <?php else: ?>
+                <div class="explainer">
+                    <div style="font-size: 1.5rem; line-height: 1;">💡</div>
+                    <div>
+                        <div class="explainer-title">FPHP Cache Nedir ve Ne Yapar?</div>
+                        <div class="explainer-text">
+                            Normalde bir PHP sayfası her açıldığında yüzlerce dosya yüklenir, veritabanına bağlanılır ve sunucu yorulur. 
+                            <strong>FPHP Cache</strong>, sayfaları bellekte (C-RAM / OPcache) hazır tutar. İstek geldiğinde veritabanına hiç dokunmadan 
+                            sayfayı <strong>0.1 milisaniyede</strong> doğrudan sunar. Siteniz 10.000 kişi aynı anda gelse bile kilitlenmez.
+                        </div>
                     </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
             <!-- CANLI HIZ TESTİ -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">⚡ Canlı Tepki Hızı Testi</div>
                     <div class="btn-group">
-                        <button class="btn btn-primary" onclick="testLiveFetch(false)">⚡ Önbellekli Çağır (HIT Testi)</button>
-                        <button class="btn btn-danger" onclick="testLiveFetch(true)">⚠️ Önbelleksiz Çağır (Yavaş MySQL Testi)</button>
+                        <button class="btn btn-primary" onclick="testLiveFetch(false)">
+                            <?= $theme === '1996' ? '⚡ Işık Hızında İndir (0.05µs HIT)' : '⚡ Önbellekli Çağır (HIT Testi)' ?>
+                        </button>
+                        <button class="btn btn-danger" onclick="testLiveFetch(true)">
+                            <?= $theme === '1996' ? '🐌 28.8k Modem Simülasyonu (MISS)' : '⚠️ Önbelleksiz Çağır (Yavaş MySQL Testi)' ?>
+                        </button>
                     </div>
                 </div>
                 <div class="panel-body">
@@ -960,7 +1454,44 @@ require_once __DIR__ . '/fphp-bootstrap.php';
             </div>
         <?php endif; ?>
 
-    </div>
+        <?php if ($theme === '1996'): ?>
+            <!-- RETRO 1996 WEB BADGES & FOOTER -->
+            <div class="retro-badges">
+                <div class="retro-badge-box">🧭 Netscape Now 3.0</div>
+                <div class="retro-badge-box">💻 Best Viewed 800x600</div>
+                <div class="retro-badge-box">📝 Made with Notepad</div>
+                <div class="retro-badge-box">🛡️ CyberPatrol Approved</div>
+                <div class="retro-badge-box">✅ Valid HTML 3.2</div>
+                <div class="retro-badge-box">⚡ Intel Pentium Pro 200MHz</div>
+            </div>
+
+            <div style="text-align:center; padding:12px; font-size:12px; color:#555; background:#c0c0c0; border-top:1px solid #808080;">
+                <p style="margin-bottom:6px;">
+                    <strong>Webmaster:</strong> Tolgahan Acar &lt;<a href="mailto:tolgahan@geocities.com">tolgahan@geocities.com</a>&gt; | 
+                    <strong>IRC:</strong> #fphp @ EFNet | <strong>ICQ UIN:</strong> 1996050
+                </p>
+                <p style="margin-bottom:6px;">
+                    <a href="javascript:alert('Ziyaretçi defteri henüz boş! İlk imzalayan siz oldunuz.')">[ 📖 Ziyaretçi Defterini İmzala ]</a> | 
+                    <a href="javascript:alert('WebRing sonraki siteye yönlendiriliyor...')">[ 🌐 WebRing: &laquo; Önceki | Rastgele | Sonraki &raquo; ]</a>
+                </p>
+                <p style="font-size:11px; color:#777;">
+                    Bu sayfa Microsoft FrontPage '97 ve Notepad ile yazılmıştır. Telif Hakkı &copy; 1996 FPHP Cyber-Lab. Tüm Hakları Saklıdır.
+                </p>
+            </div>
+
+            </div> <!-- /.retro-content-wrap -->
+
+            <!-- WINDOWS 95 STATUS BAR -->
+            <div class="win-statusbar">
+                <div class="win-status-pane" style="flex:1;">🌐 Belge: Tamamlandı (0.05 ms / 50 µs)</div>
+                <div class="win-status-pane">🔐 Güvenlik: 40-bit RC4</div>
+                <div class="win-status-pane">💾 Bellek: 16 MB EDO RAM</div>
+                <div class="win-status-pane">⚡ Mod: Dial-up Bypass</div>
+            </div>
+        </div> <!-- /.browser-window -->
+    <?php else: ?>
+        </div> <!-- /.main-container -->
+    <?php endif; ?>
 
     <script>
         async function testLiveFetch(isBypass) {
