@@ -885,6 +885,214 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
             align-items: center;
             gap: 4px;
         }
+
+        /* ============================================================== */
+        /* MODERN MASAÜSTÜ SİSTEM KABUĞU (DESKTOP ENVIRONMENT)           */
+        /* ============================================================== */
+        body.theme-modern {
+            background: radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12), transparent 45%),
+                        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08), transparent 45%),
+                        #0a0e17 !important;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .os-desktop-bar {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            height: 42px;
+            padding: 0 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .os-app-menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            color: #f3f4f6;
+            padding: 4px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            user-select: none;
+        }
+        .os-app-menu:hover { background: rgba(255, 255, 255, 0.1); }
+
+        .os-workspaces {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        .os-workspace-btn {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            user-select: none;
+        }
+        .os-workspace-btn.active {
+            background: var(--accent-blue);
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .os-tray {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .os-tray-item {
+            font-size: 12px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+        }
+
+        /* DESKTOP WORKSPACE */
+        .os-workspace {
+            display: flex;
+            padding: 1.25rem;
+            gap: 1.25rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* DESKTOP SHORTCUTS (LEFT COLUMN) */
+        .os-shortcuts {
+            width: 90px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            flex-shrink: 0;
+            padding-top: 6px;
+        }
+        .os-shortcut {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            text-decoration: none;
+            color: #d1d5db;
+            padding: 8px 4px;
+            border-radius: 8px;
+            transition: background 0.15s, transform 0.15s;
+            border: 1px solid transparent;
+        }
+        .os-shortcut:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+            color: #ffffff;
+        }
+        .os-shortcut.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        .os-shortcut-icon {
+            font-size: 26px;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        .os-shortcut-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        /* MAIN FLOATING OS WINDOW */
+        .os-window {
+            flex: 1;
+            min-width: 0;
+            background: rgba(17, 20, 28, 0.94);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .os-window-titlebar {
+            background: rgba(22, 26, 36, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.65rem 1.15rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .os-traffic-lights {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+        .os-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .os-dot-red    { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+        .os-dot-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
+        .os-dot-green  { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+
+        .os-window-title {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .os-window-actions {
+            display: flex;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            user-select: none;
+        }
+
+        .os-window-body {
+            padding: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .os-workspace { flex-direction: column; padding: 0.75rem; }
+            .os-shortcuts {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+                justify-content: flex-start;
+                padding-top: 0;
+            }
+            .os-shortcut { width: 75px; flex-shrink: 0; }
+        }
     </style>
 </head>
 <body class="<?= $theme === '90s' ? 'theme-90s' : 'theme-modern' ?>">
@@ -977,50 +1185,111 @@ if ($page === 'benchmark' && isset($_GET['run'])) {
 
         <div class="retro-content-wrap">
 <?php else: ?>
-    <!-- TOP UNIFIED BAR (MODERN 2026 THEME) -->
-    <header class="top-nav">
-        <div class="brand">
-            <span>⚡ FPHP ENGINE</span>
-            <span class="brand-pill">v<?= FphpCache::VERSION ?></span>
-        </div>
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div class="theme-pill-switch">
-                <a href="?page=<?= $page ?>&theme=90s" class="btn">📺 90's Retro Web</a>
-                <a href="?page=<?= $page ?>&theme=modern" class="btn btn-primary">🚀 2026 Modern Cyber</a>
+    <!-- ============================================================== -->
+    <!-- MASAÜSTÜ SİSTEM KABUĞU & GÖREV ÇUBUĞU (DESKTOP ENVIRONMENT)    -->
+    <!-- ============================================================== -->
+    <header class="os-desktop-bar">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <div class="os-app-menu" title="Sistem Kontrol Menüsü">
+                <span>⚡</span>
+                <span>Sistem Menüsü</span>
             </div>
-            <div style="font-size: 12px; color: var(--text-muted);">
-                Mikro-Saniye PHP Hızlandırma & Önbellek Sistemi
+            <div class="os-workspaces">
+                <div class="os-workspace-btn active">1</div>
+                <div class="os-workspace-btn">2</div>
+                <div class="os-workspace-btn">3</div>
+            </div>
+        </div>
+
+        <div class="os-window-title">
+            <span>💻 Masaüstü Konsolu — [ fphp-engine: aktif (0.05µs) ]</span>
+        </div>
+
+        <div class="os-tray">
+            <div class="os-tray-item">
+                <span style="color:#10b981;">●</span>
+                <span>L1 C-RAM: 0.05µs</span>
+            </div>
+            <div class="os-tray-item">
+                <span>🕒</span>
+                <span id="os-live-clock"><?= date('H:i') ?></span>
+            </div>
+            <div class="theme-pill-switch">
+                <a href="?page=<?= $page ?>&theme=90s" class="btn" style="padding:2px 8px; font-size:11px;">📺 90's Retro</a>
+                <a href="?page=<?= $page ?>&theme=modern" class="btn btn-primary" style="padding:2px 8px; font-size:11px;">🖥️ Masaüstü</a>
             </div>
         </div>
     </header>
 
-    <div class="main-container">
+    <div class="os-workspace">
+        <!-- SOL MASAÜSTÜ KISAYOLLARI (DESKTOP ICONS) -->
+        <aside class="os-shortcuts">
+            <a href="index.php?page=demo&theme=modern" class="os-shortcut <?= $page === 'demo' ? 'active' : '' ?>">
+                <div class="os-shortcut-icon">🏠</div>
+                <div class="os-shortcut-label">Başlangıç</div>
+            </a>
+            <a href="index.php?page=stats&theme=modern" class="os-shortcut <?= $page === 'stats' ? 'active' : '' ?>">
+                <div class="os-shortcut-icon">📊</div>
+                <div class="os-shortcut-label">Monitör</div>
+            </a>
+            <a href="index.php?page=files&theme=modern" class="os-shortcut <?= $page === 'files' ? 'active' : '' ?>">
+                <div class="os-shortcut-icon">📁</div>
+                <div class="os-shortcut-label">Dosyalar</div>
+            </a>
+            <a href="index.php?page=intelligence&theme=modern" class="os-shortcut <?= $page === 'intelligence' ? 'active' : '' ?>">
+                <div class="os-shortcut-icon">🧠</div>
+                <div class="os-shortcut-label">Zeka (PID)</div>
+            </a>
+            <a href="index.php?page=benchmark&theme=modern" class="os-shortcut <?= $page === 'benchmark' ? 'active' : '' ?>">
+                <div class="os-shortcut-icon">⚡</div>
+                <div class="os-shortcut-label">Kıyaslama</div>
+            </a>
+        </aside>
 
-        <!-- NOTIFICATION -->
-        <?php if (!empty($notice)): ?>
-            <div class="alert <?= $noticeType ?>">
-                <?= htmlspecialchars($notice) ?>
+        <!-- MERKEZİ PENCERE (FLOATING OS WINDOW) -->
+        <main class="os-window">
+            <div class="os-window-titlebar">
+                <div class="os-traffic-lights">
+                    <span class="os-dot os-dot-red" title="Kapat"></span>
+                    <span class="os-dot os-dot-yellow" title="Küçült"></span>
+                    <span class="os-dot os-dot-green" title="Tam Ekran"></span>
+                </div>
+                <div class="os-window-title">
+                    <span>🖥️ core@system: ~/fphp-engine/<?= htmlspecialchars($page) ?>.sh</span>
+                </div>
+                <div class="os-window-actions">
+                    <span>—</span>
+                    <span>▢</span>
+                    <span>✕</span>
+                </div>
             </div>
-        <?php endif; ?>
 
-        <!-- UNIFIED NAVIGATION TABS (MODERN 2026 THEME) -->
-        <nav class="tab-bar">
-            <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
-                🏠 Hızlı Başlangıç ve Canlı Demo
-            </a>
-            <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
-                📊 Canlı Telemetri ve İstatistikler
-            </a>
-            <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
-                📁 Önbellek Dosya Gezgini (<?= count($cacheFiles) ?>)
-            </a>
-            <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
-                🧠 Akıllı Zeka Motorları (PID & Soyağacı)
-            </a>
-            <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
-                ⚡ Canlı Hız Kıyaslama (Benchmark)
-            </a>
-        </nav>
+            <!-- WINDOW SUB TABS -->
+            <nav class="tab-bar" style="margin-bottom:0; padding: 0.5rem 1rem 0 1rem; background: var(--surface-elevated);">
+                <a href="index.php?page=demo&theme=<?= $theme ?>" class="tab-item <?= $page === 'demo' ? 'active' : '' ?>">
+                    🏠 demo.sh
+                </a>
+                <a href="index.php?page=stats&theme=<?= $theme ?>" class="tab-item <?= $page === 'stats' ? 'active' : '' ?>">
+                    📊 system_monitor.log
+                </a>
+                <a href="index.php?page=files&theme=<?= $theme ?>" class="tab-item <?= $page === 'files' ? 'active' : '' ?>">
+                    📁 storage/ (<?= count($cacheFiles) ?>)
+                </a>
+                <a href="index.php?page=intelligence&theme=<?= $theme ?>" class="tab-item <?= $page === 'intelligence' ? 'active' : '' ?>">
+                    🧠 pid_core.sys
+                </a>
+                <a href="index.php?page=benchmark&theme=<?= $theme ?>" class="tab-item <?= $page === 'benchmark' ? 'active' : '' ?>">
+                    ⚡ benchmark.bin
+                </a>
+            </nav>
+
+            <div class="os-window-body">
+                <!-- NOTIFICATION -->
+                <?php if (!empty($notice)): ?>
+                    <div class="alert <?= $noticeType ?>">
+                        <?= htmlspecialchars($notice) ?>
+                    </div>
+                <?php endif; ?>
 <?php endif; ?>
 
         <?php if ($page === 'demo'): ?>
@@ -1530,7 +1799,9 @@ require_once __DIR__ . '/fphp-bootstrap.php';
             </div>
         </div> <!-- /.browser-window -->
     <?php else: ?>
-        </div> <!-- /.main-container -->
+            </div> <!-- /.os-window-body -->
+        </main> <!-- /.os-window -->
+    </div> <!-- /.os-workspace -->
     <?php endif; ?>
 
     <script>
